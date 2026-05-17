@@ -1,15 +1,17 @@
 ﻿<template>
   <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link> |
-    <router-link to="/customer">Customer</router-link>|
-    <router-link to="/usermanage">UserManage</router-link>|
-    <router-link to="/userbuymain">UserBuyMain</router-link>|
-    <router-link to="/cart">Cart</router-link>|
-    <router-link to="/orderquery">OrderQuery</router-link>
-    <router-link to="/login">MyLogin</router-link>
+    <router-link to="/">系统首页</router-link> |
+    <router-link to="/profile">个人中心</router-link> |
+    <router-link to="/users">用户列表</router-link> |
+    <router-link to="/user-manage">用户管理</router-link> |
+    <router-link to="/fruit-categories">水果分类</router-link> |
+    <router-link to="/fruit-info">水果信息</router-link> |
+    <router-link to="/promotions">促销活动</router-link> |
+    <router-link to="/orders">订单管理</router-link> |
+    <router-link to="/notifications">通知公告</router-link> |
+    <router-link to="/login">登录</router-link>
   </nav>
-  <router-view/>
+  <router-view />
 </template>
 
 <style>
