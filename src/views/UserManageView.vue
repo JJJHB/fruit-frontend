@@ -37,11 +37,16 @@
         <el-table-column prop="id" label="序号" min-width="60"></el-table-column>
         <el-table-column prop="account" label="账号" min-width="100"></el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100"></el-table-column>
-        <el-table-column prop="gender" label="性别" min-width="60"></el-table-column>
+        <el-table-column prop="role" label="角色" min-width="80"></el-table-column>
         <el-table-column prop="phone" label="手机" min-width="120"></el-table-column>
         <el-table-column prop="avatar" label="头像" min-width="80">
           <template #default="scope">
             <el-image :src="scope.row.avatar" class="avatar-image" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="addtime" label="添加时间" min-width="160">
+          <template #default="scope">
+            {{ formatDate(scope.row.addtime) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" min-width="220">
@@ -69,15 +74,32 @@ const selectedUsers = ref([])
 const accountQuery = ref('')
 const nameQuery = ref('')
 
+// 格式化后端时间
+const formatDate = (addtime) => {
+  if (!addtime || !addtime.time) return ''
+  const date = new Date(addtime.time)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+}
+
 // 请求后端获取用户列表
 const fetchUsers = async () => {
   try {
     const res = await axios.get('http://localhost:8082/fruit-backend/userQueryList')
-    if (res.data && Array.isArray(res.data)) {
-      users.value = res.data.map((u, idx) => ({
-        ...u,
-        id: idx + 1, // 序号
-        avatar: u.avatar || 'https://via.placeholder.com/40'
+    if (res.data && Array.isArray(res.data.users)) {
+      users.value = res.data.users.map((u, idx) => ({
+        id: idx + 1,                   // 序号
+        account: u.username,           // 账号
+        name: u.username,              // 姓名
+        role: u.role || '未知',        // 角色
+        phone: u.phone || '',          // 手机
+        avatar: u.image ? `http://localhost:8082/fruit-backend/${u.image}` : 'https://via.placeholder.com/40',
+        addtime: u.addtime              // 添加时间
       }))
     }
   } catch (err) {
@@ -142,7 +164,7 @@ onMounted(() => {
 .header-actions {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap; /* 避免按钮换行触发 ResizeObserver */
+  flex-wrap: nowrap;
 }
 
 .avatar-image {
