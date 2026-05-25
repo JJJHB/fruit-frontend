@@ -1,7 +1,5 @@
 <template>
   <div class="admin-page">
-
-    <!-- 页面标题栏 -->
     <div class="page-header">
       <h1>水果信息管理</h1>
       <p>添加、修改和删除水果信息，包含名称、价格、库存等基本字段。</p>
@@ -15,7 +13,7 @@
       </div>
       <div class="search-item">
         <label>产地:</label>
-        <input type="text" placeholder="产地" v-model="search.origin" />
+        <input type="text" placeholder="产地" v-model="search.chandi" />  <!-- 已修复 -->
       </div>
       <div class="search-item price">
         <label>价格:</label>
@@ -23,125 +21,369 @@
         <input type="text" placeholder="最大价格" v-model="search.maxPrice" />
       </div>
       <button class="search-btn" @click="handleSearch">查询</button>
-      <button class="add-btn" @click="handleAdd">新增水果</button>
+      <button class="add-btn" @click="openAddDialog">新增水果</button>
     </div>
 
     <!-- 分类标签 -->
     <div class="category-bar">
-      <span class="category-item active">全部</span>
-      <span class="category-item" v-for="i in 8" :key="i">水果分类{{i}}</span>
+      <span
+        class="category-item"
+        :class="{ active: activeCategory === '' }"
+        @click="filterByCategory('')"
+      >
+        全部
+      </span>
+      <span
+        class="category-item"
+        :class="{ active: activeCategory === `水果分类${i}` }"
+        @click="filterByCategory(`水果分类${i}`)"
+        v-for="i in 8"
+        :key="i"
+      >
+        水果分类{{ i }}
+      </span>
     </div>
 
     <!-- 排序栏 -->
     <div class="sort-bar">
-      <span class="sort-item">价格 ⇄</span>
-      <span class="sort-item">点击量 ⇄</span>
-      <span class="sort-item">收藏数 ☆</span>
-      <span class="sort-item">点赞数 👍</span>
+      <span class="sort-item" @click="sortByPrice">
+        价格 {{ sortField === 'price' ? (sortAsc ? '↑' : '↓') : '⇄' }}
+      </span>
+      <span class="sort-item" @click="sortByClick">
+        点击量 {{ sortField === 'clicknum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
+      </span>
+      <span class="sort-item" @click="sortByStore">
+        收藏数 {{ sortField === 'storeupnum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
+      </span>
+      <span class="sort-item" @click="sortByThumb">
+        点赞数 {{ sortField === 'thumbsupnum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
+      </span>
     </div>
 
-    <!-- 水果列表卡片 -->
+    <!-- 水果列表 -->
     <div class="fruit-list">
-      <div class="fruit-card" v-for="item in filteredList" :key="item.id">
+      <div class="fruit-card" v-for="item in showList" :key="item.id">
         <div class="card-img">
-          <img :src="item.img" alt="水果图片" />
+          <img :src="item.shuiguotupian ? `${baseURL}/${item.shuiguotupian}` : 'https://via.placeholder.com/200'" alt="图片" />
         </div>
         <div class="card-info">
-          <p class="fruit-name">{{ item.name }}</p>
-          <p class="fruit-category">{{ item.category }}</p>
+          <p class="fruit-name">{{ item.shuiguomingcheng }}</p>
+          <p class="fruit-category">{{ item.shuiguofenlei }}</p>
           <p class="fruit-price">¥{{ item.price }}</p>
-          <p class="meta">发布时间: {{ item.time }}</p>
-          <p class="meta">点赞数: {{ item.like }}</p>
-          <p class="meta">收藏量: {{ item.collect }}</p>
-          <p class="meta">点击量: {{ item.click }}</p>
+          <p class="meta">发布时间: {{ item.addtime }}</p>
+          <p class="meta">点赞数: {{ item.thumbsupnum }}</p>
+          <p class="meta">收藏量: {{ item.storeupnum }}</p>
+          <p class="meta">点击量: {{ item.clicknum }}</p>
           <div class="card-actions">
             <button class="btn-edit" @click="handleEdit(item)">编辑</button>
-            <button class="btn-delete" @click="handleDelete(item)">删除</button>
+            <button class="btn-delete" @click="handleDelete(item.id)">删除</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增弹窗 -->
+    <div v-if="showAddDialog" class="dialog-mask">
+      <div class="dialog">
+        <h3>新增水果</h3>
+        <div class="form-item">
+          <label>水果名称</label>
+          <input v-model="addForm.shuiguomingcheng" type="text" placeholder="请输入水果名称" />
+        </div>
+        <div class="form-item">
+          <label>水果分类</label>
+          <input v-model="addForm.shuiguofenlei" type="text" placeholder="请输入分类" />
+        </div>
+        <div class="form-item">
+          <label>产地</label>
+          <input v-model="addForm.chandi" type="text" placeholder="产地" />
+        </div>
+        <div class="form-item">
+          <label>价格</label>
+          <input v-model="addForm.price" type="number" placeholder="价格" />
+        </div>
+        <div class="form-item">
+          <label>库存</label>
+          <input v-model="addForm.alllimittimes" type="number" placeholder="库存" />
+        </div>
+        <div class="form-item">
+          <label>图片地址</label>
+          <input v-model="addForm.shuiguotupian" type="text" placeholder="图片名（如 1.jpg）" />
+        </div>
+        <div class="dialog-btns">
+          <button @click="closeAddDialog">取消</button>
+          <button @click="saveFruit">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div v-if="showEditDialog" class="dialog-mask">
+      <div class="dialog">
+        <h3>编辑水果</h3>
+        <div class="form-item">
+          <label>水果名称</label>
+          <input v-model="editForm.shuiguomingcheng" type="text" />
+        </div>
+        <div class="form-item">
+          <label>水果分类</label>
+          <input v-model="editForm.shuiguofenlei" type="text" />
+        </div>
+        <div class="form-item">
+          <label>产地</label>
+          <input v-model="editForm.chandi" type="text" />
+        </div>
+        <div class="form-item">
+          <label>价格</label>
+          <input v-model="editForm.price" type="number" />
+        </div>
+        <div class="form-item">
+          <label>库存</label>
+          <input v-model="editForm.alllimittimes" type="number" />
+        </div>
+        <div class="form-item">
+          <label>图片地址</label>
+          <input v-model="editForm.shuiguotupian" type="text" />
+        </div>
+        <div class="dialog-btns">
+          <button @click="closeEditDialog">取消</button>
+          <button @click="updateFruit">保存修改</button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'FruitInfoView',
-  data() {
-    return {
-      search: {
-        name: '',
-        origin: '',
-        minPrice: '',
-        maxPrice: ''
-      },
-      // 原始数据
-      fruitList: [
-        { id: 1, name: '苹果', category: '水果分类1', price: 8.8, origin: '山东', time: '2025-02-26', like: 8, collect: 8, click: 9, img: '' },
-        { id: 2, name: '香蕉', category: '水果分类2', price: 5.5, origin: '海南', time: '2025-02-26', like: 7, collect: 7, click: 7, img: '' },
-        { id: 3, name: '草莓', category: '水果分类3', price: 39.9, origin: '辽宁', time: '2025-02-26', like: 6, collect: 6, click: 6, img: '' },
-        { id: 4, name: '西瓜', category: '水果分类4', price: 2.9, origin: '河南', time: '2025-02-26', like: 5, collect: 5, click: 5, img: '' }
-      ]
+<script setup>
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+const baseURL = 'http://localhost:8082/fruit-backend'
+
+// 数据列表
+const fruitList = ref([])
+const showList = ref([])
+const activeCategory = ref('')
+
+// 排序
+const sortField = ref('')
+const sortAsc = ref(true)
+
+// 查询条件
+const search = ref({
+  name: '',
+  chandi: '',
+  minPrice: '',
+  maxPrice: ''
+})
+
+// 新增
+const showAddDialog = ref(false)
+const addForm = ref({
+  shuiguomingcheng: '',
+  shuiguofenlei: '',
+  chandi: '',
+  price: '',
+  alllimittimes: '',
+  shuiguotupian: ''
+})
+
+// 编辑
+const showEditDialog = ref(false)
+const editForm = ref({
+  id: '',
+  shuiguomingcheng: '',
+  shuiguofenlei: '',
+  chandi: '',
+  price: '',
+  alllimittimes: '',
+  shuiguotupian: ''
+})
+
+// 打开/关闭 新增
+const openAddDialog = () => { showAddDialog.value = true }
+const closeAddDialog = () => {
+  showAddDialog.value = false
+  addForm.value = { shuiguomingcheng: '', shuiguofenlei: '', chandi: '', price: '', alllimittimes: '', shuiguotupian: '' }
+}
+
+// 打开/关闭 编辑
+const handleEdit = (item) => {
+  editForm.value = { ...item }
+  showEditDialog.value = true
+}
+const closeEditDialog = () => { showEditDialog.value = false }
+
+// 保存新增
+const saveFruit = async () => {
+  try {
+    const res = await axios.post(`${baseURL}/fruitAdd`, addForm.value, {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    // 👇👇 这里是关键修复 👇👇
+    if (res.data.code === 200) {
+      alert('新增成功！')
+      closeAddDialog()
+      fetchFruitList()
+    } else {
+      alert('新增失败：' + res.data.msg)
     }
-  },
-  computed: {
-    // 筛选后的列表（查询核心）
-    filteredList() {
-      let { name, origin, minPrice, maxPrice } = this.search
-      let list = [...this.fruitList]
 
-      // 1. 按名称模糊查询
-      if (name) {
-        list = list.filter(item => item.name.includes(name))
-      }
-
-      // 2. 按产地模糊查询
-      if (origin) {
-        list = list.filter(item => item.origin.includes(origin))
-      }
-
-      // 3. 最小价格
-      if (minPrice) {
-        list = list.filter(item => item.price >= Number(minPrice))
-      }
-
-      // 4. 最大价格
-      if (maxPrice) {
-        list = list.filter(item => item.price <= Number(maxPrice))
-      }
-
-      return list
-    }
-  },
-  methods: {
-    handleSearch() {
-      console.log('查询条件：', this.search)
-      // 已经自动筛选，这里只需提示即可
-      alert('查询成功，共找到 ' + this.filteredList.length + ' 条数据')
-    },
-    handleAdd() {
-      console.log('新增水果')
-    },
-    handleEdit(item) {
-      console.log('编辑水果:', item)
-    },
-    handleDelete(item) {
-      if (confirm('确定删除该水果吗？')) {
-        console.log('删除水果:', item)
-      }
-    }
+  } catch (err) {
+    console.error(err)
+    alert('新增失败：服务器异常')
   }
 }
+
+// 保存编辑（修复版）
+const updateFruit = async () => {
+  try {
+    const res = await axios.post(`${baseURL}/fruitUpdate`, editForm.value, {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (res.data.code === 200) {
+      alert('修改成功！')
+      closeEditDialog()
+      fetchFruitList()
+    } else {
+      alert('修改失败：' + res.data.msg)
+    }
+
+  } catch (err) {
+    console.error(err)
+    alert('修改失败')
+  }
+}
+
+// 删除
+const handleDelete = async (id) => {
+  if (!confirm('确定删除？')) return
+  try {
+    await axios.get(`${baseURL}/fruitDelete`, { params: { id } })
+    alert('删除成功')
+    fetchFruitList()
+  } catch (err) {
+    alert('删除失败')
+  }
+}
+
+// 查询
+const handleSearch = () => {
+  fetchFruitList()  // 👈 直接重新请求后端查询！
+}
+
+// 获取列表
+const fetchFruitList = async () => {
+  try {
+    const res = await axios.get(`${baseURL}/fruitQueryList`, { params: search.value })
+    fruitList.value = res.data.fruits || []
+    showList.value = [...fruitList.value]
+  } catch (err) {
+    console.error('获取失败', err)
+  }
+}
+
+// 分类筛选
+const filterByCategory = (category) => {
+  activeCategory.value = category
+  let list = [...fruitList.value]
+  if (category) list = list.filter(item => item.shuiguofenlei === category)
+  doSort(list)
+}
+
+// 排序
+const doSort = (list) => {
+  if (!sortField.value) {
+    showList.value = list
+    return
+  }
+  list.sort((a, b) => {
+    const valA = Number(a[sortField.value]) || 0
+    const valB = Number(b[sortField.value]) || 0
+    return sortAsc.value ? valA - valB : valB - valA
+  })
+  showList.value = list
+}
+
+// 排序触发
+const sortByPrice = () => {
+  sortField.value === 'price' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'price', sortAsc.value = true)
+  filterByCategory(activeCategory.value)
+}
+const sortByClick = () => {
+  sortField.value === 'clicknum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'clicknum', sortAsc.value = true)
+  filterByCategory(activeCategory.value)
+}
+const sortByStore = () => {
+  sortField.value === 'storeupnum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'storeupnum', sortAsc.value = true)
+  filterByCategory(activeCategory.value)
+}
+const sortByThumb = () => {
+  sortField.value === 'thumbsupnum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'thumbsupnum', sortAsc.value = true)
+  filterByCategory(activeCategory.value)
+}
+
+onMounted(() => { fetchFruitList() })
 </script>
+
+<style>
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.dialog {
+  background: white;
+  width: 500px;
+  padding: 30px;
+  border-radius: 16px;
+}
+.form-item {
+  margin-bottom: 15px;
+}
+.form-item label {
+  display: block;
+  margin-bottom: 6px;
+}
+.form-item input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+.dialog-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.dialog-btns button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.dialog-btns button:nth-child(2) {
+  background: #409eff;
+  color: white;
+}
+</style>
 
 <style scoped>
 .admin-page {
-  background-color: #ffffff;
+  background-color: #fff;
   min-height: 100vh;
   padding: 0 20px;
 }
-
-/* 蓝色标题栏（和首页风格一致） */
 .page-header {
   background: linear-gradient(90deg, #409eff, #74c0fc);
   color: white;
@@ -151,18 +393,16 @@ export default {
   margin-bottom: 30px;
 }
 .page-header h1 {
-  margin: 0 0 10px 0;
+  margin: 0 0 10px;
   font-size: 28px;
 }
 .page-header p {
   margin: 0;
   font-size: 16px;
-  opacity: 0.9;
+  opacity: .9;
 }
-
-/* 搜索栏 */
 .search-area {
-  background-color: #f8fafc;
+  background: #f8fafc;
   padding: 20px;
   border-radius: 12px;
   display: flex;
@@ -183,11 +423,10 @@ export default {
 }
 .search-area .price {
   display: flex;
-  align-items: center;
   gap: 10px;
 }
 .search-btn {
-  background-color: #409eff;
+  background: #409eff;
   color: white;
   border: none;
   padding: 8px 18px;
@@ -196,7 +435,7 @@ export default {
   font-size: 14px;
 }
 .add-btn {
-  background-color: #27ae60;
+  background: #27ae60;
   color: white;
   border: none;
   padding: 8px 18px;
@@ -204,8 +443,6 @@ export default {
   cursor: pointer;
   font-size: 14px;
 }
-
-/* 分类栏 */
 .category-bar {
   display: flex;
   gap: 10px;
@@ -213,18 +450,16 @@ export default {
 }
 .category-item {
   padding: 8px 16px;
-  background-color: #f1f3f5;
+  background: #f1f3f5;
   border-radius: 8px;
   font-size: 14px;
   color: #2c3e50;
   cursor: pointer;
 }
 .category-item.active {
-  background-color: #409eff;
+  background: #409eff;
   color: white;
 }
-
-/* 排序栏 */
 .sort-bar {
   display: flex;
   gap: 40px;
@@ -235,9 +470,8 @@ export default {
   font-size: 14px;
   color: #2c3e50;
   cursor: pointer;
+  user-select: none;
 }
-
-/* 水果列表 */
 .fruit-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
@@ -245,9 +479,9 @@ export default {
 }
 .fruit-card {
   display: flex;
-  background-color: white;
+  background: white;
   border-radius: 16px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.05);
   padding: 15px;
 }
 .card-img {
@@ -256,7 +490,7 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   margin-right: 20px;
-  background-color: #f8fafc;
+  background: #f8fafc;
 }
 .card-img img {
   width: 100%;
@@ -273,18 +507,18 @@ export default {
   font-size: 16px;
   font-weight: 500;
   color: #2c3e50;
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
 }
 .fruit-category {
   font-size: 14px;
   color: #64748b;
-  margin: 0 0 10px 0;
+  margin: 0 0 10px;
 }
 .fruit-price {
   color: #e74c3c;
   font-size: 18px;
   font-weight: bold;
-  margin: 0 0 12px 0;
+  margin: 0 0 12px;
 }
 .meta {
   font-size: 13px;
@@ -297,7 +531,7 @@ export default {
   gap: 10px;
 }
 .btn-edit {
-  background-color: #409eff;
+  background: #409eff;
   color: white;
   border: none;
   padding: 6px 14px;
@@ -306,7 +540,7 @@ export default {
   font-size: 13px;
 }
 .btn-delete {
-  background-color: #e74c3c;
+  background: #e74c3c;
   color: white;
   border: none;
   padding: 6px 14px;
