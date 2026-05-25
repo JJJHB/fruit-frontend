@@ -7,6 +7,7 @@
     <router-link to="/fruit-categories">水果分类</router-link> |
     <router-link to="/fruit-info">水果信息</router-link> |
     <router-link to="/promotions">促销活动</router-link> |
+    <router-link to="/carousel">轮播图管理</router-link> |
     <router-link to="/orders">订单管理</router-link> |
     <router-link to="/notifications">通知公告</router-link> |
     <router-link to="/login">登录</router-link>

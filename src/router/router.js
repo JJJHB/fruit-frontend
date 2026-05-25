@@ -10,7 +10,8 @@ const routes = [
   { path: '/promotions', name: 'promotion', component: () => import('../views/PromotionView.vue') },
   { path: '/orders', name: 'orderQuery', component: () => import('../views/OrderQueryView.vue') },
   { path: '/login', name: 'login', component: () => import('../views/MyLogin.vue') },
-  { path: '/notifications', name: 'notification', component: () => import('../views/NotificationView.vue') }
+  { path: '/notifications', name: 'notification', component: () => import('../views/NotificationView.vue') },
+  { path: '/carousel', name: 'carousel', component: () => import('../views/CarouselView.vue') }
 ]
 
 const router = createRouter({
