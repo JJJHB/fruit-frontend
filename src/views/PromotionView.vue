@@ -4,14 +4,11 @@
 
     <!-- 搜索栏 -->
     <div class="search-bar">
-      <span>水果名称:</span>
-      <input type="text" v-model="search.shuiguomingcheng" placeholder="水果名称">
+      <span>促销标题:</span>
+      <input type="text" v-model="search.title" placeholder="促销标题">
       
-      <span>产地:</span>
-      <input type="text" v-model="search.chandi" placeholder="产地">
-      
-      <span>水果分类:</span>
-      <input type="text" v-model="search.shuiguofenlei" placeholder="水果分类">
+      <span>水果ID:</span>
+      <input type="number" v-model="search.fruitId" placeholder="水果ID">
       
       <button class="btn-query" @click="getList">查询</button>
       <button class="btn-add" @click="openModal()">新增促销</button>
@@ -22,22 +19,22 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>添加时间</th>
-          <th>水果名称</th>
-          <th>水果分类</th>
-          <th>产地</th>
-          <th>单价(元)</th>
+          <th>水果ID</th>
+          <th>促销标题</th>
+          <th>促销价(元)</th>
+          <th>开始时间</th>
+          <th>结束时间</th>
           <th>操作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in list" :key="item.id">
           <td>{{ item.id }}</td>  
-          <td>{{ formatDate(item.addtime) }}</td>
-          <td>{{ item.shuiguomingcheng }}</td>
-          <td>{{ item.shuiguofenlei }}</td>
-          <td>{{ item.chandi }}</td>
-          <td>{{ item.price }}</td>
+          <td>{{ item.fruitId }}</td>
+          <td>{{ item.title }}</td>
+          <td>{{ item.discountPrice }}</td>
+          <td>{{ item.startTime }}</td>
+          <td>{{ item.endTime }}</td>
           <td>
             <button @click="openModal(item)">修改</button>
             <button @click="handleDelete(item.id)">删除</button>
@@ -51,20 +48,24 @@
       <div class="modal-content">
         <h3>{{ form.id ? '修改促销' : '新增促销' }}</h3>
         <div class="form-item">
-          <label>水果名称：</label>
-          <input type="text" v-model="form.shuiguomingcheng" required>
+          <label>水果ID：</label>
+          <input type="number" v-model="form.fruitId" required>
         </div>
         <div class="form-item">
-          <label>水果分类：</label>
-          <input type="text" v-model="form.shuiguofenlei" required>
+          <label>促销标题：</label>
+          <input type="text" v-model="form.title" required>
         </div>
         <div class="form-item">
-          <label>产地：</label>
-          <input type="text" v-model="form.chandi" required>
+          <label>促销价：</label>
+          <input type="number" step="0.01" v-model="form.discountPrice" required placeholder="请输入价格">
         </div>
         <div class="form-item">
-          <label>单价：</label>
-          <input type="number" step="0.01" v-model="form.price" required placeholder="请输入价格">
+          <label>开始时间：</label>
+          <input type="text" v-model="form.startTime" placeholder="例：2026-06-01 12:00" required>
+        </div>
+        <div class="form-item">
+          <label>结束时间：</label>
+          <input type="text" v-model="form.endTime" placeholder="例：2026-06-01 12:00" required>
         </div>
   
         <div class="modal-buttons">
@@ -83,17 +84,17 @@ export default {
     return {
       list: [],
       search: {
-        shuiguomingcheng: '',
-        chandi: '',
-        shuiguofenlei: ''
+        title: '',
+        fruitId: ''
       },
       showModal: false,
       form: {
         id: null,
-        shuiguomingcheng: '',
-        shuiguofenlei: '',
-        chandi: '',
-        price: ''
+        fruitId: '',
+        title: '',
+        discountPrice: '',
+        startTime: '',
+        endTime: ''
       }
     }
   },
@@ -101,26 +102,11 @@ export default {
     this.getList()
   },
   methods: {
-    // ====================== 日期格式化 ======================
-    formatDate(date) {
-      if (!date) return ''
-      if (typeof date === 'object') {
-        const year = date.year || date.getFullYear()
-        const month = String((date.month ?? date.getMonth()) + 1).padStart(2, '0')
-        const day = String(date.date ?? date.getDate()).padStart(2, '0')
-        const hours = String(date.hours ?? date.getHours()).padStart(2, '0')
-        const minutes = String(date.minutes ?? date.getMinutes()).padStart(2, '0')
-        return `${year}-${month}-${day} ${hours}:${minutes}`
-      }
-      return date
-    },
-
     // ====================== 查询列表 ======================
     async getList() {
       const params = new URLSearchParams();
-      if (this.search.shuiguomingcheng) params.append('shuiguomingcheng', this.search.shuiguomingcheng);
-      if (this.search.chandi) params.append('chandi', this.search.chandi);
-      if (this.search.shuiguofenlei) params.append('shuiguofenlei', this.search.shuiguofenlei);
+      if (this.search.title) params.append('title', this.search.title);
+      if (this.search.fruitId) params.append('fruitId', this.search.fruitId);
 
       const res = await fetch(`/api/fruit-backend/promotion?${params.toString()}`);
       const data = await res.json();
@@ -135,19 +121,23 @@ export default {
       } else {
         this.form = {
           id: null,
-          shuiguomingcheng: '',
-          shuiguofenlei: '',
-          chandi: '',
-          price: ''
+          fruitId: '',
+          title: '',
+          discountPrice: '',
+          startTime: '',
+          endTime: ''
         }
       }
     },
 
-    // ====================== 提交（新增/修改） 关键修复 ======================
+    // ====================== 提交（新增/修改） ======================
     async submitForm() {
-      // 1. 强制校验价格，必须是数字且大于0
-      if (!this.form.price || isNaN(Number(this.form.price)) || Number(this.form.price) <= 0) {
-        alert('请输入合法的价格！');
+      if (!this.form.fruitId || !this.form.title || !this.form.discountPrice || !this.form.startTime || !this.form.endTime) {
+        alert('请填写所有必填项！');
+        return;
+      }
+      if (isNaN(Number(this.form.discountPrice)) || Number(this.form.discountPrice) <= 0) {
+        alert('请输入合法的促销价！');
         return;
       }
 
@@ -156,19 +146,16 @@ export default {
 
       if (this.form.id) {
         url += `?action=update&id=${this.form.id}`;
-      } else {
-        url += `?action=add`;
       }
 
-      // 2. 严格按照表单方式传参，和后端getParameter完全匹配
       const formData = new URLSearchParams();
-      formData.append('shuiguomingcheng', this.form.shuiguomingcheng.trim());
-      formData.append('shuiguofenlei', this.form.shuiguofenlei.trim());
-      formData.append('chandi', this.form.chandi.trim());
-      formData.append('price', Number(this.form.price)); // 确保是数字，不是字符串
+      formData.append('fruitId', this.form.fruitId);
+      formData.append('title', this.form.title.trim());
+      formData.append('discountPrice', Number(this.form.discountPrice));
+      formData.append('startTime', this.form.startTime);
+      formData.append('endTime', this.form.endTime);
 
       try {
-        // 3. 显式设置Content-Type，和后端解析方式匹配
         const res = await fetch(url, {
           method,
           headers: {
@@ -202,14 +189,15 @@ export default {
 </script>
 
 <style scoped>
-/* 去掉所有输入框箭头 */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .promotion-container {
