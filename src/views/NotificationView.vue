@@ -33,18 +33,9 @@
       <el-table-column type="index" label="序号" width="60"></el-table-column>
 
       <el-table-column prop="title" label="标题"></el-table-column>
-      <el-table-column prop="typename" label="分类名称"></el-table-column>
-      <el-table-column prop="name" label="发布人"></el-table-column>
-      <el-table-column prop="clicknum" label="点击次数" width="100"></el-table-column>
-      <el-table-column prop="storeupnum" label="收藏数" width="100"></el-table-column>
-
-      <el-table-column label="图片" width="150">
+      <el-table-column prop="createTime" label="发布时间" width="180">
         <template v-slot="scope">
-          <img
-              :src="getImgUrl(scope.row.picture)"
-              style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px;"
-              alt="图片"
-          />
+          {{ formatDate(scope.row.createTime) }}
         </template>
       </el-table-column>
 
@@ -62,20 +53,8 @@
         <el-form-item label="公告标题">
           <el-input v-model="form.title" placeholder="请输入标题"></el-input>
         </el-form-item>
-        <el-form-item label="分类名称">
-          <el-input v-model="form.typename" placeholder="请输入分类名称"></el-input>
-        </el-form-item>
-        <el-form-item label="发布人">
-          <el-input v-model="form.name" placeholder="请输入发布人姓名"></el-input>
-        </el-form-item>
-        <el-form-item label="封面图片路径">
-          <el-input v-model="form.picture" placeholder="可输入图片 URL 或相对路径"></el-input>
-        </el-form-item>
-        <el-form-item label="公告简介">
-          <el-input type="textarea" :rows="2" v-model="form.introduction" placeholder="请输入简短介绍"></el-input>
-        </el-form-item>
         <el-form-item label="详细内容">
-          <el-input type="textarea" :rows="5" v-model="form.content" placeholder="请输入详细内容"></el-input>
+          <el-input type="textarea" :rows="8" v-model="form.content" placeholder="请输入详细内容"></el-input>
         </el-form-item>
       </el-form>
       <template v-slot:footer>
@@ -90,17 +69,10 @@
       <div class="view-detail">
         <h2>{{ viewData.title }}</h2>
         <div class="meta-info">
-          <span>分类：{{ viewData.typename }}</span> |
-          <span>发布人：{{ viewData.name }}</span> |
-          <span>点击量：{{ viewData.clicknum }}</span>
+          <span>发布时间：{{ formatDate(viewData.createTime) }}</span>
         </div>
         <hr />
-        <div class="img-box" v-if="viewData.picture" style="text-align:center; margin: 15px 0;">
-          <img :src="getImgUrl(viewData.picture)" style="max-width: 100%; max-height: 250px; object-fit: contain;" />
-        </div>
-        <p class="intro-text"><b>简介：</b>{{ viewData.introduction || '暂无简介' }}</p>
         <div class="content-text">
-          <b>详细内容：</b>
           <div style="margin-top: 10px; line-height: 1.6; text-indent: 2em;">{{ viewData.content }}</div>
         </div>
       </div>
@@ -117,12 +89,11 @@
 <script>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
-import { ElMessage } from 'element-plus'; // 确保引入 Vue 3 的消息提示
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'NotificationView',
   setup() {
-    // 响应式变量定义
     const searchTitle = ref('');
     const newsList = ref([]);
     const multipleSelection = ref([]);
@@ -132,13 +103,10 @@ export default {
     const dialogTitle = ref('添加公告');
     const isEdit = ref(false);
 
+    // 表单数据对象仅保留 3 个交互字段（id, title, content）
     const form = reactive({
       id: '',
       title: '',
-      typename: '',
-      name: '',
-      picture: '',
-      introduction: '',
       content: ''
     });
 
@@ -156,10 +124,10 @@ export default {
         newsList.value = res.data;
       } catch (error) {
         console.error("加载数据失败：", error);
+        ElMessage.error("数据加载失败");
       }
     };
 
-    // 页面加载时执行
     onMounted(() => {
       fetchNewsList();
     });
@@ -168,15 +136,17 @@ export default {
     const handleAdd = () => {
       isEdit.value = false;
       dialogTitle.value = '添加公告';
-      dialogVisible.value = true; // 真正改变 ref 响应式状态
+      dialogVisible.value = true;
     };
 
     // 3. 点击修改
     const handleEdit = (row) => {
       isEdit.value = true;
       dialogTitle.value = '修改公告';
-      // 填充 reactive 表单数据
-      Object.assign(form, row);
+      // 仅安全的把旧行中匹配的属性克隆过来
+      form.id = row.id;
+      form.title = row.title;
+      form.content = row.content;
       dialogVisible.value = true;
     };
 
@@ -192,10 +162,6 @@ export default {
         params.append('action', actionType);
         if (isEdit.value) params.append('id', form.id);
         params.append('title', form.title);
-        params.append('typename', form.typename);
-        params.append('name', form.name);
-        params.append('picture', form.picture);
-        params.append('introduction', form.introduction);
         params.append('content', form.content);
 
         const res = await axios.post('http://localhost:8082/fruit-backend/NewsServlet', params);
@@ -256,22 +222,25 @@ export default {
       }
     };
 
-    const getImgUrl = (url) => {
-      if (!url) return '';
-      return url.startsWith('http') ? url : `http://localhost:8082/fruit-backend/${url}`;
-    };
-
     const handleSelectionChange = (val) => {
       multipleSelection.value = val;
+    };
+
+    // 简单的日期格式化工具函数
+    const formatDate = (timeStr) => {
+      if (!timeStr) return '暂无时间';
+      const date = new Date(timeStr);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${d} ${hh}:${mm}`;
     };
 
     const resetForm = () => {
       form.id = '';
       form.title = '';
-      form.typename = '';
-      form.name = '';
-      form.picture = '';
-      form.introduction = '';
       form.content = '';
     };
 
@@ -291,8 +260,8 @@ export default {
       handleView,
       handleDelete,
       handleBatchDelete,
-      getImgUrl,
       handleSelectionChange,
+      formatDate,
       resetForm
     };
   }
@@ -300,7 +269,6 @@ export default {
 </script>
 
 <style scoped>
-/* 样式部分保持不变 */
 .notification-container { padding: 20px; background-color: #fff; min-height: 100%; }
 .page-header { font-size: 14px; margin-bottom: 25px; color: #333; }
 .page-header .separator { margin: 0 8px; color: #27ae60; font-size: 10px; }
@@ -310,6 +278,5 @@ export default {
 .action-buttons { margin-left: auto; }
 .view-detail h2 { text-align: center; margin-bottom: 10px; color: #333; }
 .view-detail .meta-info { text-align: center; font-size: 13px; color: #888; margin-bottom: 15px; }
-.view-detail .intro-text { background-color: #f9f9f9; padding: 10px; border-left: 4px solid #27ae60; margin-bottom: 15px; font-size: 14px; }
 .view-detail .content-text { font-size: 15px; color: #444; }
 </style>
