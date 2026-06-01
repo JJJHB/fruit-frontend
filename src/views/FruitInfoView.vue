@@ -199,14 +199,6 @@ const editForm = ref({
   alllimittimes: '',
   shuiguotupian: ''
 })
-
-// 打开/关闭 新增
-const openAddDialog = () => { showAddDialog.value = true }
-const closeAddDialog = () => {
-  showAddDialog.value = false
-  addForm.value = { shuiguomingcheng: '', shuiguofenlei: '', chandi: '', price: '', alllimittimes: '', shuiguotupian: '' }
-}
-
 // 打开/关闭 编辑
 const handleEdit = (item) => {
   editForm.value = { ...item }
@@ -214,14 +206,37 @@ const handleEdit = (item) => {
 }
 const closeEditDialog = () => { showEditDialog.value = false }
 
+// 打开/关闭 新增
+const openAddDialog = () => { showAddDialog.value = true }
+const closeAddDialog = () => {
+  showAddDialog.value = false
+  // 完整字段，和后端实体一一对应
+  addForm.value = {
+    name: '',       // 水果名称
+    categoryId: '', // 水果分类ID
+    detail: '',    // 产地
+    price: '',     // 价格
+    stock: '',     // 库存（之前漏掉了！）
+    clicknum: '',  // 点击量（截图里没有，可按需保留）
+    picture: ''    // 图片地址
+  }
+}
+
 // 保存新增
 const saveFruit = async () => {
   try {
-    const res = await axios.post(`${baseURL}/fruitAdd`, addForm.value, {
+    const formData = {
+      ...addForm.value,
+      categoryId: addForm.value.categoryId ? Number(addForm.value.categoryId) : null,
+      price: addForm.value.price ? Number(addForm.value.price) : null,
+      stock: addForm.value.stock ? Number(addForm.value.stock) : null,
+      clicknum: addForm.value.clicknum ? Number(addForm.value.clicknum) : 0
+    }
+
+    const res = await axios.post(`${baseURL}/fruitAdd`, formData, {
       headers: { 'Content-Type': 'application/json' }
     })
 
-    // 👇👇 这里是关键修复 👇👇
     if (res.data.code === 200) {
       alert('新增成功！')
       closeAddDialog()
@@ -229,7 +244,6 @@ const saveFruit = async () => {
     } else {
       alert('新增失败：' + res.data.msg)
     }
-
   } catch (err) {
     console.error(err)
     alert('新增失败：服务器异常')
