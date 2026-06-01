@@ -1,7 +1,6 @@
 <template>
   <div class="home">
 
-```
 <!-- 顶部导航 -->
 <header class="header">
   <div class="logo">
