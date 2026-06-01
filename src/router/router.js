@@ -1,16 +1,47 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
+// 后台主框架
+import AdminView from '../views/AdminView.vue'
+
+// 后台子页面
+import HomeView from '../views/HomeView.vue'
+import UserProfileView from '../views/UserProfileView.vue'
+import UserListView from '../views/UserListView.vue'
+import UserManageView from '../views/UserManageView.vue'
+import FruitCategoryView from '../views/FruitCategoryView.vue'
+import FruitInfoView from '../views/FruitInfoView.vue'
+import PromotionView from '../views/PromotionView.vue'
+import OrderQueryView from '../views/OrderQueryView.vue'
+import NotificationView from '../views/NotificationView.vue'
+import CarouselView from '../views/CarouselView.vue'
+
+// 普通页面
+import MyLogin from '../views/MyLogin.vue'
+import RegisterView from '../views/RegisterView.vue'
+
 const routes = [
-  { path: '/', name: 'home', component: () => import('../views/HomeView.vue') },
-  { path: '/profile', name: 'userProfile', component: () => import('../views/UserProfileView.vue') },
-  { path: '/users', name: 'userList', component: () => import('../views/UserListView.vue') },
-  { path: '/user-manage', name: 'userManage', component: () => import('../views/UserManageView.vue') },
-  { path: '/fruit-categories', name: 'fruitCategories', component: () => import('../views/FruitCategoryView.vue') },
-  { path: '/fruit-info', name: 'fruitInfo', component: () => import('../views/FruitInfoView.vue') },
-  { path: '/promotions', name: 'promotion', component: () => import('../views/PromotionView.vue') },
-  { path: '/orders', name: 'orderQuery', component: () => import('../views/OrderQueryView.vue') },
-  { path: '/login', name: 'login', component: () => import('../views/MyLogin.vue') },
-  { path: '/notifications', name: 'notification', component: () => import('../views/NotificationView.vue') }
+  // 前台页面
+  { path: '/', name: 'home', component: HomeView },
+  { path: '/login', name: 'login', component: MyLogin },
+  { path: '/register', name: 'register', component: RegisterView },
+
+  // 后台管理（导航栏固定）
+  {
+    path: '/admin',
+    name: 'admin',
+    component: AdminView,
+    children: [
+      { path: 'profile', name: 'adminProfile', component: UserProfileView },
+      { path: 'users', name: 'adminUsers', component: UserListView },
+      { path: 'user-manage', name: 'adminUserManage', component: UserManageView },
+      { path: 'fruit-categories', name: 'adminFruitCategories', component: FruitCategoryView },
+      { path: 'fruit-info', name: 'adminFruitInfo', component: FruitInfoView },
+      { path: 'promotions', name: 'adminPromotions', component: PromotionView },
+      { path: 'orders', name: 'adminOrders', component: OrderQueryView },
+      { path: 'notifications', name: 'adminNotifications', component: NotificationView },
+      { path: 'carousel', name: 'adminCarousel', component: CarouselView }
+    ]
+  }
 ]
 
 const router = createRouter({

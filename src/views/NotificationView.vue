@@ -103,7 +103,7 @@ export default {
     const dialogTitle = ref('添加公告');
     const isEdit = ref(false);
 
-    // 表单数据对象仅保留 3 个交互字段（id, title, content）
+    // 表单数据对象：契合当前的后端核心交互字段
     const form = reactive({
       id: '',
       title: '',
@@ -121,7 +121,8 @@ export default {
             title: searchTitle.value
           }
         });
-        newsList.value = res.data;
+        // 兼容处理：支持直接返回数组或带包装的 data 字段
+        newsList.value = res.data.data || res.data;
       } catch (error) {
         console.error("加载数据失败：", error);
         ElMessage.error("数据加载失败");
@@ -143,7 +144,6 @@ export default {
     const handleEdit = (row) => {
       isEdit.value = true;
       dialogTitle.value = '修改公告';
-      // 仅安全的把旧行中匹配的属性克隆过来
       form.id = row.id;
       form.title = row.title;
       form.content = row.content;
@@ -174,6 +174,7 @@ export default {
         }
       } catch (error) {
         console.error("请求失败：", error);
+        ElMessage.error("请求服务器失败");
       }
     };
 
@@ -190,9 +191,12 @@ export default {
           const res = await axios.get('http://localhost:8082/fruit-backend/NewsServlet', {
             params: { action: 'delete', id: id }
           });
-          if (res.data.code === 200) {
+          const resData = res.data;
+          if (resData.code === 200) {
             ElMessage.success("删除成功");
             fetchNewsList();
+          } else {
+            ElMessage.error(resData.msg || "删除失败");
           }
         } catch (error) {
           console.error("删除失败：", error);
@@ -215,6 +219,8 @@ export default {
           if (res.data.code === 200) {
             ElMessage.success("批量删除成功");
             fetchNewsList();
+          } else {
+            ElMessage.error(res.data.msg || "批量删除失败");
           }
         } catch (error) {
           console.error("批量删除失败：", error);
@@ -226,10 +232,11 @@ export default {
       multipleSelection.value = val;
     };
 
-    // 简单的日期格式化工具函数
+    // 日期格式化工具函数
     const formatDate = (timeStr) => {
       if (!timeStr) return '暂无时间';
       const date = new Date(timeStr);
+      if (isNaN(date.getTime())) return timeStr; // 如果本就是格式化好的字符串则直接返回
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const d = String(date.getDate()).padStart(2, '0');
