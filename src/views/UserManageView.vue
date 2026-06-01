@@ -1,65 +1,93 @@
 <template>
   <div class="user-management">
     <el-card>
-      <!-- 标题与操作 -->
+
+      <!-- 顶部操作栏 -->
       <div class="header-bar">
-        <span class="header-title">首页 ● 用户</span>
+        <span class="header-title">首页 ● 用户管理</span>
+
         <div class="header-actions">
-          <el-input
-            v-model="accountQuery"
-            placeholder="请输入账号"
-            size="small"
-            style="width: 150px"
-          />
-          <el-input
-            v-model="nameQuery"
-            placeholder="请输入姓名"
-            size="small"
-            style="width: 150px"
-          />
-          <el-button type="primary" size="small" @click="handleSearch">Q 查询</el-button>
-          <el-button type="success" size="small" @click="handleAdd">+ 添加</el-button>
-          <el-button type="danger" size="small" @click="handleDeleteBatch">● 删除</el-button>
+          <el-input v-model="accountQuery" placeholder="账号" size="small" style="width: 140px" />
+          <el-input v-model="nameQuery" placeholder="姓名" size="small" style="width: 140px" />
+
+          <el-button type="primary" size="small" @click="handleSearch">查询</el-button>
+          <el-button type="success" size="small" @click="handleAdd">新增</el-button>
+          <el-button type="danger" size="small" @click="handleDeleteBatch">批量删除</el-button>
         </div>
       </div>
 
-      <!-- 用户表格 -->
+      <!-- 表格 -->
       <el-table
         :data="users"
         border
         stripe
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
         max-height="600"
-        :header-cell-style="{ background: '#f5f7fa', fontWeight: 'bold' }"
+        @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50"></el-table-column>
-        <el-table-column prop="id" label="序号" min-width="60"></el-table-column>
-        <el-table-column prop="account" label="账号" min-width="100"></el-table-column>
-        <el-table-column prop="name" label="姓名" min-width="100"></el-table-column>
-        <el-table-column prop="role" label="角色" min-width="80"></el-table-column>
-        <el-table-column prop="phone" label="手机" min-width="120"></el-table-column>
-        <el-table-column prop="avatar" label="头像" min-width="80">
+        <el-table-column type="selection" width="50" />
+
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="account" label="账号" />
+        <el-table-column prop="name" label="姓名" />
+        <el-table-column prop="role" label="角色" />
+        <el-table-column prop="phone" label="手机" />
+
+        <el-table-column label="头像" width="80">
           <template #default="scope">
-            <el-image :src="scope.row.avatar" class="avatar-image" />
+            <el-image
+              :src="scope.row.avatar || defaultAvatar"
+              style="width: 40px; height: 40px"
+            />
           </template>
         </el-table-column>
-        <el-table-column prop="addtime" label="添加时间" min-width="160">
+
+        <el-table-column label="添加时间" width="180">
           <template #default="scope">
             {{ formatDate(scope.row.addtime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="220">
+
+        <el-table-column label="操作" width="220">
           <template #default="scope">
-            <el-space :size="6">
-              <el-button type="primary" size="mini" @click="handleView(scope.row)">+ 查看</el-button>
-              <el-button type="warning" size="mini" @click="handleEdit(scope.row)">之 修改</el-button>
-              <el-button type="danger" size="mini" @click="handleDelete(scope.row)">宣 删除</el-button>
-            </el-space>
+            <el-button type="primary" size="small" @click="handleView(scope.row)">查看</el-button>
+            <el-button type="warning" size="small" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
+
       </el-table>
     </el-card>
+
+    <!-- ================== 弹窗 ================== -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
+
+      <el-form :model="form" label-width="80px">
+
+        <el-form-item label="账号">
+          <el-input v-model="form.account" />
+        </el-form-item>
+
+        <el-form-item label="姓名">
+          <el-input v-model="form.name" />
+        </el-form-item>
+
+        <el-form-item label="角色">
+          <el-input v-model="form.role" />
+        </el-form-item>
+
+        <el-form-item label="手机">
+          <el-input v-model="form.phone" />
+        </el-form-item>
+
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSave">保存</el-button>
+      </template>
+
+    </el-dialog>
+
   </div>
 </template>
 
@@ -70,82 +98,143 @@ import axios from 'axios'
 const users = ref([])
 const selectedUsers = ref([])
 
-// 查询条件
 const accountQuery = ref('')
 const nameQuery = ref('')
 
-// 格式化后端时间
-const formatDate = (addtime) => {
-  if (!addtime || !addtime.time) return ''
-  const date = new Date(addtime.time)
-  const yyyy = date.getFullYear()
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  const hh = String(date.getHours()).padStart(2, '0')
-  const min = String(date.getMinutes()).padStart(2, '0')
-  const ss = String(date.getSeconds()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
-}
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
 
-// 请求后端获取用户列表
+const isEdit = ref(false)
+
+const defaultAvatar = 'https://via.placeholder.com/40'
+
+const form = ref({
+  id: null,
+  account: '',
+  name: '',
+  role: '',
+  phone: '',
+  avatar: ''
+})
+
+/* ================= 查询 ================= */
 const fetchUsers = async () => {
   try {
     const res = await axios.get('http://localhost:8082/fruit-backend/userQueryList')
+
     if (res.data && Array.isArray(res.data.users)) {
-      users.value = res.data.users.map((u, idx) => ({
-        id: idx + 1,                   // 序号
-        account: u.username,           // 账号
-        name: u.username,              // 姓名
-        role: u.role || '未知',        // 角色
-        phone: u.phone || '',          // 手机
-        avatar: u.image ? `http://localhost:8082/fruit-backend/${u.image}` : 'https://via.placeholder.com/40',
-        addtime: u.addtime              // 添加时间
+      users.value = res.data.users.map(u => ({
+        id: u.id,
+        account: u.username,
+        name: u.username,
+        role: u.role || '普通用户',
+        phone: u.phone || '',
+        avatar: u.image ? `http://localhost:8082/fruit-backend/${u.image}` : '',
+        addtime: u.addtime
       }))
     }
-  } catch (err) {
-    console.error('获取用户列表失败', err)
+  } catch (e) {
+    console.error(e)
   }
 }
 
-// 查询按钮
-const handleSearch = () => {
-  fetchUsers()
+/* ================= 时间格式化 ================= */
+const formatDate = (addtime) => {
+  if (!addtime?.time) return ''
+  const d = new Date(addtime.time)
+  return d.toLocaleString()
 }
 
-// 添加 / 查看 / 修改 / 删除操作
-const handleAdd = () => console.log('添加用户')
-const handleView = (user) => console.log('查看用户', user)
-const handleEdit = (user) => console.log('修改用户', user)
-const handleDelete = (user) => {
-  console.log('删除用户', user)
-  users.value = users.value.filter(u => u.id !== user.id)
+/* ================= 新增 ================= */
+const handleAdd = () => {
+  isEdit.value = false
+  dialogTitle.value = '新增用户'
+
+  form.value = {
+    id: null,
+    account: '',
+    name: '',
+    role: '',
+    phone: '',
+    avatar: ''
+  }
+
+  dialogVisible.value = true
 }
 
-// 批量选择
+/* ================= 修改 ================= */
+const handleEdit = (row) => {
+  isEdit.value = true
+  dialogTitle.value = '修改用户'
+  form.value = { ...row }
+  dialogVisible.value = true
+}
+
+/* ================= 查看 ================= */
+const handleView = (row) => {
+  alert(JSON.stringify(row, null, 2))
+}
+
+/* ================= 保存（新增/修改） ================= */
+const handleSave = async () => {
+  try {
+    if (isEdit.value) {
+      await axios.put('http://localhost:8082/fruit-backend/userUpdate', form.value)
+    } else {
+      await axios.post('http://localhost:8082/fruit-backend/userAdd', form.value)
+    }
+
+    dialogVisible.value = false
+    fetchUsers()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/* ================= 删除 ================= */
+const handleDelete = async (row) => {
+  try {
+    await axios.delete(`http://localhost:8082/fruit-backend/userDelete/${row.id}`)
+    fetchUsers()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/* ================= 批量删除 ================= */
+const handleDeleteBatch = async () => {
+  if (!selectedUsers.value.length) {
+    return alert('请选择用户')
+  }
+
+  const ids = selectedUsers.value.map(i => i.id)
+
+  try {
+    await axios.post('http://localhost:8082/fruit-backend/userDeleteBatch', ids)
+    selectedUsers.value = []
+    fetchUsers()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/* ================= 选择 ================= */
 const handleSelectionChange = (val) => {
   selectedUsers.value = val
 }
 
-const handleDeleteBatch = () => {
-  if (!selectedUsers.value.length) return alert('请先选择要删除的用户')
-  const ids = selectedUsers.value.map(u => u.id)
-  users.value = users.value.filter(u => !ids.includes(u.id))
-  selectedUsers.value = []
+/* ================= 查询按钮 ================= */
+const handleSearch = () => {
+  fetchUsers()
 }
 
-// 页面加载时请求列表
+/* ================= 初始化 ================= */
 onMounted(() => {
   fetchUsers()
 })
 </script>
 
 <style scoped>
-.el-table th, .el-table td {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .user-management {
   padding: 20px;
 }
@@ -153,23 +242,17 @@ onMounted(() => {
 .header-bar {
   display: flex;
   justify-content: space-between;
+  margin-bottom: 15px;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .header-title {
   font-size: 18px;
+  font-weight: bold;
 }
 
 .header-actions {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.avatar-image {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
 }
 </style>
