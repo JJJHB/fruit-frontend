@@ -15,15 +15,18 @@ import OrderQueryView from '../views/OrderQueryView.vue'
 import NotificationView from '../views/NotificationView.vue'
 import CarouselView from '../views/CarouselView.vue'
 
+
 // 普通页面
 import MyLogin from '../views/MyLogin.vue'
 import RegisterView from '../views/RegisterView.vue'
+import SearchView from '../views/SearchView.vue'
 
 const routes = [
   // 前台页面
   { path: '/', name: 'home', component: HomeView },
   { path: '/login', name: 'login', component: MyLogin },
   { path: '/register', name: 'register', component: RegisterView },
+  { path: '/search', name: 'search', component: SearchView },
 
   // 后台管理（导航栏固定）
   {

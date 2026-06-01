@@ -32,7 +32,7 @@
           placeholder="搜索水果..."
           @keyup.enter="search"
         />
-        <button @click="search">搜索</button>
+        <router-link to="/search">搜索</router-link>
       </div>
     </header>
 
