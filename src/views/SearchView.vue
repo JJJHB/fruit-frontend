@@ -1,5 +1,8 @@
 <template>
   <div class="search-page">
+    <div style="margin-bottom:12px">
+      <button @click="$router.push('/')" style="padding:5px 12px;border:none;background:#ccc;border-radius:6px;cursor:pointer">← 返回首页</button>
+    </div>
     <!-- 搜索框 -->
     <div class="search-box">
       <input
@@ -14,11 +17,11 @@
     <!-- 搜索结果 -->
     <div class="result">
       <h2 v-if="keyword">搜索结果：{{ keyword }}</h2>
-      <p v-else>请输入关键词进行搜索</p>
+      <p v-else>全部水果</p>
 
       <div class="fruit-list">
         <div class="fruit-card" v-for="f in filteredFruits" :key="f.id">
-          <img :src="f.picture || defaultImg" />
+          <img :src="f.picture ? `${baseURL}/upload/${f.picture}` : defaultImg" />
           <h3>{{ f.name }}</h3>
           <p class="price">￥{{ f.price }}</p>
           <p class="desc">{{ f.detail }}</p>
@@ -31,40 +34,63 @@
 </template>
 
 <script>
+import axios from 'axios'
 export default {
   name: "SearchView",
   data() {
     return {
+      baseURL: "http://localhost:8082/fruit-backend",
       keyword: "",
       defaultImg: "https://picsum.photos/200/150",
-      fruits: [
-        { id: 1, name: "红富士苹果", price: 8.8, detail: "新鲜红富士苹果", picture: "https://picsum.photos/200/150?1" },
-        { id: 2, name: "青苹果", price: 7.5, detail: "酸甜可口", picture: "https://picsum.photos/200/150?2" },
-        { id: 3, name: "砂糖橘", price: 12.5, detail: "广西砂糖橘", picture: "https://picsum.photos/200/150?3" },
-        { id: 4, name: "泰国榴莲", price: 58, detail: "进口金枕榴莲", picture: "https://picsum.photos/200/150?4" },
-        { id: 5, name: "香蕉", price: 5.5, detail: "热带香蕉", picture: "https://picsum.photos/200/150?5" },
-        { id: 6, name: "草莓", price: 15.0, detail: "新鲜草莓", picture: "https://picsum.photos/200/150?6" }
-      ]
+      fruitList: []
     };
   },
   computed: {
     filteredFruits() {
-      if (!this.keyword.trim()) return [];
-      return this.fruits.filter(f => f.name.includes(this.keyword));
+      return this.fruitList
     }
   },
   mounted() {
-    this.keyword = this.$route.query.keyword || "";
+    this.keyword = this.$route.query.keyword || ""
+    // 无论空还是有值，都请求数据（空=查全部）
+    this.getSearchData()
   },
   watch: {
     "$route.query.keyword"(val) {
-      this.keyword = val || "";
+      this.keyword = val || ""
+      this.getSearchData()
+    },
+    // 输入框内容实时变化，自动搜索
+    keyword() {
+      this.getSearchData()
     }
   },
+  
   methods: {
+    async getSearchData(){
+      try {
+        let res = await axios.get(`${this.baseURL}/fruitQueryList`,{
+          params:{
+            name:this.keyword,
+            minPrice:"",
+            maxPrice:""
+          }
+        })
+        this.fruitList = res.data.fruits || []
+      }catch(err){
+        console.error(err)
+        this.fruitList = []
+      }
+    },
     doSearch() {
-      if (!this.keyword.trim()) return;
-      this.$router.push({ path: "/search", query: { keyword: this.keyword } });
+      let key = this.keyword.trim()
+      // 空值不带参数，页面显示全部
+      if (!key) {
+        this.$router.push({ path: "/search" });
+        return;
+      }
+      // 有值携带关键词搜索
+      this.$router.push({ path: "/search", query: { keyword: key } });
     }
   }
 };
