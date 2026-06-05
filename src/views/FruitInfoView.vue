@@ -54,7 +54,7 @@
     <div class="fruit-list">
       <div class="fruit-card" v-for="item in showList" :key="item.id">
         <div class="card-img">
-          <img :src="item.picture ? `${baseURL}/${item.picture}` : 'https://via.placeholder.com/200'" alt="图片" />
+          <img :src="item.picture ? `${baseURL}/upload/${item.picture}` : 'https://via.placeholder.com/200'" alt="图片" />
         </div>
         <div class="card-info">
           <p class="fruit-name">{{ item.name }}</p>
@@ -101,8 +101,9 @@
           <input v-model="addForm.detail" type="text" placeholder="填写详情产地" />
         </div>
         <div class="form-item">
-          <label>图片地址</label>
-          <input v-model="addForm.picture" type="text" placeholder="图片名（如 1.jpg）" />
+          <label>上传水果图片</label>
+          <input type="file" accept="image/*" @change="uploadImgAdd($event)">
+          <span style="color:#666">已选：{{ addForm.picture || '未上传' }}</span>
         </div>
         <div class="dialog-btns">
           <button @click="closeAddDialog">取消</button>
@@ -137,8 +138,9 @@
           <input v-model="editForm.stock" type="number" />
         </div>
         <div class="form-item">
-          <label>图片地址</label>
-          <input v-model="editForm.picture" type="text" />
+          <label>重新上传图片(不换图留空)</label>
+          <input type="file" accept="image/*" @change="uploadImgEdit($event)">
+          <span style="color:#666">原图：{{ editForm.picture || '无' }}</span>
         </div>
         <div class="dialog-btns">
           <button @click="closeEditDialog">取消</button>
@@ -282,6 +284,21 @@ const closeAddDialog = () => {
   }
 }
 
+// 新增弹窗上传图片
+const uploadImgAdd = async(e)=>{
+  let file = e.target.files[0]
+  if(!file) return
+  let formData = new FormData()
+  formData.append("img",file)
+  let res = await axios.post(`${baseURL}/uploadImg`,formData,{
+    headers:{"Content-Type":"multipart/form-data"}
+  })
+  if(res.data.code === 200){
+    // 把文件名存入表单，提交时存入数据库picture字段
+    addForm.value.picture = res.data.fileName
+  }
+}
+
 // 保存新增
 const saveFruit = async () => {
   try {
@@ -350,6 +367,20 @@ const closeEditDialog = () => {
     stock: '',
     picture: '',
     clicknum: 0
+  }
+}
+
+// 编辑弹窗上传图片
+const uploadImgEdit = async(e)=>{
+  let file = e.target.files[0]
+  if(!file) return
+  let formData = new FormData()
+  formData.append("img",file)
+  let res = await axios.post(`${baseURL}/uploadImg`,formData,{
+    headers:{"Content-Type":"multipart/form-data"}
+  })
+  if(res.data.code === 200){
+    editForm.value.picture = res.data.fileName
   }
 }
 
