@@ -59,36 +59,60 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "MyLogin",
 
   data() {
     return {
-      username: "",
-      password: "",
-      role: "user"
+      role: "user",         // 默认用户
+      username: "zhangsan", // 默认账号
+      password: "123456"    // 默认密码
+    }
+  },
+
+  watch: {
+    role(newRole) {
+      if (newRole === "admin") {
+        this.username = "admin1";
+        this.password = "123456";
+      } else {
+        this.username = "zhangsan";
+        this.password = "123456";
+      }
     }
   },
 
   methods: {
     login() {
 
-      if (this.role === "admin") {
+      const params = new URLSearchParams();
 
-        console.log("管理员登录")
+      params.append("username", this.username);
+      params.append("password", this.password);
+      params.append("role", this.role);
 
-        // 管理员登录接口
+      axios.post(
+        "http://localhost:8082/fruit-backend/login",
+        params
+      ).then(res => {
 
-        this.$router.push("/admin")
+        const data = res.data;
 
-      } else {
+        if (data.code === 200) {
 
-        console.log("用户登录")
+          if (data.role === "admin") {
+            this.$router.push("/admin");
+          } else {
+            this.$router.push("/");
+          }
 
-        // 用户登录接口
+        } else {
+          alert(data.msg);
+        }
 
-        this.$router.push("/")
-      }
+      });
 
     }
   }
