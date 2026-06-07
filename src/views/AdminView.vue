@@ -11,7 +11,7 @@
           <router-link to="/admin/profile">个人中心</router-link>
         </li>
         <li>
-          <router-link to="/admin/users">用户列表</router-link>
+          <router-link to="/admin/users">管理员列表</router-link>
         </li>
         <li>
           <router-link to="/admin/user-manage">用户管理</router-link>
@@ -26,7 +26,7 @@
           <router-link to="/admin/promotions">促销活动</router-link>
         </li>
         <li>
-          <router-link to="/admin/carousel">轮播图管理</router-link>
+          <router-link to="/admin/config">轮播图管理</router-link>
         </li>
         <li>
           <router-link to="/admin/orders">订单管理</router-link>
