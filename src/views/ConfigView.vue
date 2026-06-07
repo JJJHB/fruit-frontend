@@ -61,7 +61,7 @@ export default {
     // ✅ 统一接口
     load() {
       axios.get("http://localhost:8082/fruit-backend/configQuery").then(res => {
-        this.tableData = res.data.configs;   // ⭐关键修复
+        this.tableData = res.data.configs;
       });
     },
 
