@@ -19,8 +19,15 @@
           <router-link to="/register">注册</router-link>
         </template>
         <template v-else>
-          <span>{{ username }}</span>
-          <a href="#">🛒 购物车({{ cartCount }})</a>
+          <span>👤 {{ username }}</span>
+
+          <router-link to="/cart">
+            🛒购物车({{ cartCount }})
+          </router-link>
+
+          <a href="javascript:void(0)" @click="logout">
+            退出登录
+          </a>
         </template>
       </div>
 
@@ -114,7 +121,7 @@ export default {
       defaultImg: "https://picsum.photos/300/200",
       searchText: "",
       isLogin: false,
-      username: "小明",
+      username: "",
       cartCount: 0,
       loadStep: 4, // 每次加载几个
       loaded: 4,   // 当前显示数量
@@ -153,12 +160,18 @@ export default {
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
-    // 页面打开请求后端水果
-    this.getFruitFromBackend()
-  },
-  beforeUnmount() {
-    clearInterval(this.timer);
-    window.removeEventListener("scroll", this.handleScroll);
+    this.getFruitFromBackend();
+
+    const user = localStorage.getItem("user");
+    if (user) {
+      const userInfo = JSON.parse(user);
+
+      // 只处理普通用户登录
+      if (userInfo.role === "user") {
+        this.isLogin = true;
+        this.username = userInfo.username;
+      }
+    }
   },
   methods: {
    // 修改getFruitFromBackend，带上搜索文本
@@ -207,6 +220,19 @@ export default {
     addToCart(fruit) {
       this.cartCount++;
       alert(`${fruit.name} 已加入购物车`);
+    },
+    logout() {
+      // 移除 localStorage 用户信息
+      localStorage.removeItem("user");
+
+      // 清空登录状态
+      this.isLogin = false;
+      this.username = "";
+
+      // 如果当前是 admin 页面，退回首页
+      if (this.$route.path.startsWith("/admin")) {
+        this.$router.push("/");
+      }
     }
   }
 };

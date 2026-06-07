@@ -101,6 +101,13 @@ export default {
         const data = res.data;
 
         if (data.code === 200) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              username: this.username,
+              role: data.role
+            })
+          );
 
           if (data.role === "admin") {
             this.$router.push("/admin");
