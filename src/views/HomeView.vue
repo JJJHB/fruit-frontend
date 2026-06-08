@@ -170,20 +170,16 @@ export default {
   methods: {
     async getBannersFromBackend() {
       try {
-        const res = await axios.get(`${this.baseURL}/configQuery`);
-
-        this.banners = (res.data.configs || []).map(item => {
-          return {
-            id: item.id,
-            img_url: `${this.baseURL}/upload/${item.imgUrl}` // 注意拼接 upload 路径
-          }
-        });
-
+        const res = await axios.get(`${this.baseURL}/configQuery`)
+        this.banners = (res.data.configs || []).map(item => ({
+          id: item.id,
+          img_url: `${this.baseURL}/upload/${item.imgUrl}`
+        }))
       } catch (err) {
-        console.error("轮播图加载失败", err);
+        console.error("轮播图加载失败", err)
       }
     },
-    // 修改getFruitFromBackend，带上搜索文本
+   // 修改getFruitFromBackend，带上搜索文本
     async getFruitFromBackend() {
       try {
         const res = await axios.get(`${this.baseURL}/fruitQueryList`, {
