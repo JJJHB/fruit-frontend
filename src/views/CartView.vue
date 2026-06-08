@@ -14,7 +14,7 @@
 
         <div class="info">
           <div class="name">{{ item.name }}</div>
-          <div class="price">￥{{ item.price.toFixed(2) }}</div>
+          <div class="price">￥{{ Number(item.price || 0).toFixed(2) }}</div>
 
           <!-- 数量控制 -->
           <div class="count">
@@ -24,7 +24,7 @@
           </div>
         </div>
 
-        <div class="subtotal">￥{{ (item.price * item.count).toFixed(2) }}</div>
+        <div class="subtotal">￥{{ (Number(item.price || 0) * Number(item.count || 0)).toFixed(2) }}</div>
 
         <button class="delete" @click="removeItem(item.id)">删除</button>
       </div>
@@ -44,33 +44,103 @@ export default {
   name: "CartView",
   data() {
     return {
-      cartItems: [
-        {
-          id: 1,
-          name: "苹果",
-          price: 5.5,
-          count: 2,
-          image: "http://localhost:8082/fruit-backend/upload/apple.jpg"
-        },
-        {
-          id: 2,
-          name: "香蕉",
-          price: 3.0,
-          count: 1,
-          image: "http://localhost:8082/fruit-backend/upload/banana.jpg"
-        }
-      ]
+      cartItems: []  // 初始为空
     };
   },
   computed: {
     totalPrice() {
-      return this.cartItems.reduce((sum, item) => sum + item.price * item.count, 0);
+      return this.cartItems.reduce(
+        (sum, item) => sum + Number(item.price || 0) * Number(item.count || 0),
+        0
+      );
     }
   },
+  mounted() {
+    this.fetchCart();
+  },
   methods: {
-    increase(item) { item.count++; },
-    decrease(item) { if (item.count > 1) item.count--; },
-    removeItem(id) { this.cartItems = this.cartItems.filter(item => item.id !== id); }
+
+    // 增加数量
+    increase(item) {
+      const newCount = item.count + 1;
+
+      fetch(
+        `http://localhost:8082/fruit-backend/cartupdate?id=${item.id}&count=${newCount}`,
+        {
+          method: "POST"
+        }
+      )
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === 200) {
+            item.count = newCount;
+          } else {
+            alert(data.msg);
+          }
+        });
+    },
+
+    // 减少数量
+    decrease(item) {
+      if (item.count <= 1) return;
+
+      const newCount = item.count - 1;
+
+      fetch(
+        `http://localhost:8082/fruit-backend/cartupdate?id=${item.id}&count=${newCount}`,
+        {
+          method: "POST"
+        }
+      )
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === 200) {
+            item.count = newCount;
+          } else {
+            alert(data.msg);
+          }
+        });
+    },
+
+    // 删除商品
+    removeItem(id) {
+      if (!confirm("确定删除该商品吗？")) {
+        return;
+      }
+
+      fetch(
+        `http://localhost:8082/fruit-backend/cart/delete?id=${id}`,
+        {
+          method: "POST"
+        }
+      )
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === 200) {
+            this.cartItems = this.cartItems.filter(
+              item => item.id !== id
+            );
+          } else {
+            alert(data.msg);
+          }
+        });
+    },
+
+    fetchCart() {
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user || !user.id) {
+        alert("请先登录");
+        return;
+      }
+
+      fetch(`http://localhost:8082/fruit-backend/cart?userId=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          this.cartItems = data;
+        })
+        .catch(err => console.error(err));
+    }
   }
 };
 </script>

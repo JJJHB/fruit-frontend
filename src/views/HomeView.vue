@@ -87,7 +87,7 @@
           <p class="desc">{{ f.detail }}</p>
           <p class="price">￥{{ f.price }}</p>
           <p class="stock">库存：{{ f.stock }}</p>
-          <button @click="addToCart(f)">加入购物车</button>
+          <button @click="addCart(f.id)">加入购物车</button>
         </div>
       </div>
 
@@ -155,8 +155,8 @@ export default {
     window.addEventListener("scroll", this.handleScroll);
     this.getBannersFromBackend();
     this.getFruitFromBackend();
-
     const user = localStorage.getItem("user");
+
     if (user) {
       const userInfo = JSON.parse(user);
 
@@ -222,9 +222,37 @@ export default {
         this.loadMore();
       }
     },
-    addToCart(fruit) {
-      this.cartCount++;
-      alert(`${fruit.name} 已加入购物车`);
+    addCart(fruitId, quantity = 1) {
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user || !user.id) {
+        alert("请先登录");
+        this.$router.push("/login");
+        return;
+      }
+
+      const userId = user.id;
+
+      axios.post(
+        "http://localhost:8082/fruit-backend/addCart",
+        null,
+        {
+          params: {
+            userId: userId,
+            fruitId: fruitId,
+            quantity: quantity
+          }
+        }
+      ).then(res => {
+        if (res.data.code === 200) {
+          alert("加入购物车成功");
+          this.cartCount += quantity; // 更新购物车数量
+        } else {
+          alert(res.data.msg);
+        }
+      }).catch(() => {
+        alert("网络异常");
+      });
     },
     logout() {
       // 移除 localStorage 用户信息

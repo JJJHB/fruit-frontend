@@ -5,9 +5,6 @@
       <div class="logo">🍎 管理系统</div>
       <ul class="menu">
         <li>
-          <router-link to="/admin">系统首页</router-link>
-        </li>
-        <li>
           <router-link to="/admin/profile">个人中心</router-link>
         </li>
         <li>
@@ -15,9 +12,6 @@
         </li>
         <li>
           <router-link to="/admin/user-manage">用户管理</router-link>
-        </li>
-        <li>
-          <router-link to="/admin/fruit-categories">水果分类</router-link>
         </li>
         <li>
           <router-link to="/admin/fruit-info">水果信息</router-link>
