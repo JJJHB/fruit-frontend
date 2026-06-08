@@ -110,7 +110,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+//import axios from 'axios'
 export default {
   name: "HomeView",
   data() {
@@ -136,13 +136,9 @@ export default {
         { id: 2, img_url: "https://picsum.photos/1200/300?2" },
         { id: 3, img_url: "https://picsum.photos/1200/300?3" }
       ],
-      newsList: [
-        { id: 1, title: "端午节活动：满100减20" },
-        { id: 2, title: "泰国榴莲新品上市" },
-        { id: 3, title: "系统维护公告：6月10日升级" }
-      ],
+      newsList: [],
       promos: [], // 空数组，由接口赋值
-      fruits: [
+      allFruits: [
         { id: 1, name: "红富士苹果", price: 8.8, stock: 100, detail: "新鲜红富士苹果", picture: "https://picsum.photos/300/200?10" },
         { id: 2, name: "青苹果", price: 7.5, stock: 50, detail: "酸甜可口", picture: "https://picsum.photos/300/200?11" },
         { id: 3, name: "砂糖橘", price: 12.5, stock: 80, detail: "广西砂糖橘", picture: "https://picsum.photos/300/200?12" },
@@ -150,7 +146,7 @@ export default {
         { id: 5, name: "香蕉", price: 5.5, stock: 120, detail: "热带香蕉", picture: "https://picsum.photos/300/200?14" },
         { id: 6, name: "草莓", price: 15.0, stock: 60, detail: "新鲜草莓", picture: "https://picsum.photos/300/200?15" },
         { id: 7, name: "葡萄", price: 18.0, stock: 70, detail: "甜美葡萄", picture: "https://picsum.photos/300/200?16" },
-        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.pho
+        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.photos/300/200?17" }
       ]
     };
   },
@@ -171,12 +167,28 @@ export default {
     window.addEventListener("scroll", this.handleScroll);
 
     this.getPromotionData(); // 初始化加载促销
+    this.getNewsData();
   },
   beforeUnmount() {
     clearInterval(this.timer);
     window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
+    //新增获取公告接口
+    async getNewsData() {
+      try {
+        // 注意路径大小写：/NewsServlet，默认不传 action 就是 list 列表
+        const res = await fetch("http://localhost:8082/fruit-backend/NewsServlet");
+        const data = await res.json();
+
+        // 因为你的后端 executeList 直接返回的是 List 数组，所以这里直接赋值给 newsList
+        if (Array.isArray(data)) {
+          this.newsList = data;
+        }
+      } catch (e) {
+        console.error("前台公告加载异常:", e);
+      }
+    },
     // 新增拉取促销接口
     async getPromotionData() {
       try {
