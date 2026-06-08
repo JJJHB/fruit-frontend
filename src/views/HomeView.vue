@@ -19,8 +19,15 @@
           <router-link to="/register">注册</router-link>
         </template>
         <template v-else>
-          <span>{{ username }}</span>
-          <a href="#">🛒 购物车({{ cartCount }})</a>
+          <span>👤 {{ username }}</span>
+
+          <router-link to="/cart">
+            🛒购物车({{ cartCount }})
+          </router-link>
+
+          <a href="javascript:void(0)" @click="logout">
+            退出登录
+          </a>
         </template>
       </div>
 
@@ -32,7 +39,7 @@
           placeholder="搜索水果..."
           @keyup.enter="search"
         />
-        <router-link to="/search">搜索</router-link>
+        <button @click="search">搜索</button>
       </div>
     </header>
 
@@ -78,7 +85,7 @@
 
       <div class="product-list">
         <div class="product-card" v-for="f in filteredFruits" :key="f.id">
-          <img :src="f.picture || defaultImg" />
+          <img :src="f.picture ? `${baseURL}/upload/${f.picture}` : defaultImg" />
           <h3>{{ f.name }}</h3>
           <p class="desc">{{ f.detail }}</p>
           <p class="price">￥{{ f.price }}</p>
@@ -103,20 +110,27 @@
 </template>
 
 <script>
+import axios from 'axios'
 export default {
   name: "HomeView",
   data() {
     return {
+      baseURL: "http://localhost:8082/fruit-backend",
       currentIndex: 0,
       timer: null,
       defaultImg: "https://picsum.photos/300/200",
       searchText: "",
       isLogin: false,
-      username: "小明",
+      username: "",
       cartCount: 0,
+
       loadStep: 4,
       loaded: 4,
       loading: false,
+
+      
+      
+
       banners: [
         { id: 1, img_url: "https://picsum.photos/1200/300?1" },
         { id: 2, img_url: "https://picsum.photos/1200/300?2" },
@@ -136,23 +150,26 @@ export default {
         { id: 5, name: "香蕉", price: 5.5, stock: 120, detail: "热带香蕉", picture: "https://picsum.photos/300/200?14" },
         { id: 6, name: "草莓", price: 15.0, stock: 60, detail: "新鲜草莓", picture: "https://picsum.photos/300/200?15" },
         { id: 7, name: "葡萄", price: 18.0, stock: 70, detail: "甜美葡萄", picture: "https://picsum.photos/300/200?16" },
-        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.photos/300/200?17" }
+        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.pho
       ]
     };
   },
   computed: {
     filteredFruits() {
-      return this.fruits
+      return this.allFruits
         .filter(f => f.name.includes(this.searchText))
         .slice(0, this.loaded);
     },
     hasMore() {
-      return this.loaded < this.fruits.length;
+      // 空数组兜底，没数据时length=0
+      const list = this.allFruits || []
+      return this.loaded < list.length;
     }
   },
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
+
     this.getPromotionData(); // 初始化加载促销
   },
   beforeUnmount() {
@@ -178,13 +195,15 @@ export default {
       }, 3000);
     },
     search() {
+
       this.loaded = this.loadStep;
     },
     loadMore() {
-      if (this.loading || this.loaded >= this.fruits.length) return;
+      const list = this.allFruits || []
+      if (this.loading || this.loaded >= list.length) return;
       this.loading = true;
       setTimeout(() => {
-        this.loaded = Math.min(this.loaded + this.loadStep, this.fruits.length);
+        this.loaded = Math.min(this.loaded + this.loadStep, list.length);
         this.loading = false;
       }, 500);
     },
@@ -199,6 +218,19 @@ export default {
     addToCart(fruit) {
       this.cartCount++;
       alert(`${fruit.name} 已加入购物车`);
+    },
+    logout() {
+      // 移除 localStorage 用户信息
+      localStorage.removeItem("user");
+
+      // 清空登录状态
+      this.isLogin = false;
+      this.username = "";
+
+      // 如果当前是 admin 页面，退回首页
+      if (this.$route.path.startsWith("/admin")) {
+        this.$router.push("/");
+      }
     }
   }
 };
@@ -219,6 +251,7 @@ body {
 
 .home {
   width: 100%;
+  padding-top: 80px;
 }
 
 /* ===== 统一内容宽度容器 ===== */
@@ -241,8 +274,15 @@ body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 
   gap: 15px;
-}
 
+  /* 固定置顶 */
+  position: fixed;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 999;
+  margin-top:8px;
+}
 /* logo */
 .logo {
   font-size: 20px;
