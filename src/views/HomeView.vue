@@ -126,11 +126,7 @@ export default {
       // 从后端拉取全量水果，不再写死
       allFruits: [],
 
-      banners: [
-        { id: 1, img_url: "https://picsum.photos/1200/300?1" },
-        { id: 2, img_url: "https://picsum.photos/1200/300?2" },
-        { id: 3, img_url: "https://picsum.photos/1200/300?3" }
-      ],
+      banners: [],
       newsList: [
         { id: 1, title: "端午节活动：满100减20" },
         { id: 2, title: "泰国榴莲新品上市" },
@@ -157,6 +153,7 @@ export default {
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
+    this.getBannersFromBackend();
     this.getFruitFromBackend();
 
     const user = localStorage.getItem("user");
@@ -171,7 +168,22 @@ export default {
     }
   },
   methods: {
-   // 修改getFruitFromBackend，带上搜索文本
+    async getBannersFromBackend() {
+      try {
+        const res = await axios.get(`${this.baseURL}/configQuery`);
+
+        this.banners = (res.data.configs || []).map(item => {
+          return {
+            id: item.id,
+            img_url: `${this.baseURL}/upload/${item.imgUrl}` // 注意拼接 upload 路径
+          }
+        });
+
+      } catch (err) {
+        console.error("轮播图加载失败", err);
+      }
+    },
+    // 修改getFruitFromBackend，带上搜索文本
     async getFruitFromBackend() {
       try {
         const res = await axios.get(`${this.baseURL}/fruitQueryList`, {
@@ -345,20 +357,25 @@ body {
 /* ===== banner ===== */
 .banner {
   width: 1200px;
+  height: 300px;         /* 固定容器高度 */
   margin: 15px auto;
   overflow: hidden;
   border-radius: 12px;
+  position: relative;
 }
 
 .banner-box {
   display: flex;
+  height: 100%;
   transition: transform 0.5s ease;
 }
 
 .banner-box img {
-  width: 1200px;
-  height: 300px;
-  object-fit: cover;
+  width: 100%;           /* ⭐ 横向填满容器 */
+  height: 100%;          /* ⭐ 高度固定 */
+  flex-shrink: 0;        /* 不缩小 */
+  object-fit: cover;     /* ⭐ 保证裁剪，不拉伸 */
+  display: block;        /* 去掉底部空隙 */
 }
 
 /* ===== 公告 ===== */
