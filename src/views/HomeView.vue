@@ -1,19 +1,16 @@
 <template>
   <div class="home">
 
-    <!-- 顶部导航 -->
     <header class="header">
       <div class="logo">🍎 水果商城</div>
 
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/admin/fruit-categories">水果分类</router-link>
-        <router-link to="/admin/orders">我的订单</router-link>
-        <router-link to="/admin/carousel">活动中心</router-link>
+        <router-link to="/promotions">活动中心</router-link>
       </nav>
 
       <div class="user">
-        <!-- 登录状态切换 -->
         <template v-if="!isLogin">
           <router-link to="/login">登录</router-link>
           <router-link to="/register">注册</router-link>
@@ -21,43 +18,38 @@
         <template v-else>
           <span>👤 {{ username }}</span>
 
-          <router-link to="/cart">
-            🛒购物车({{ cartCount }})
-          </router-link>
+          <router-link to="/cart">🛒购物车({{ cartCount }})</router-link>
 
-          <a href="javascript:void(0)" @click="logout">
-            退出登录
-          </a>
+          <router-link to="/admin/orders">📦我的订单</router-link>
+
+          <a href="javascript:void(0)" @click="logout">退出登录</a>
         </template>
       </div>
 
-      <!-- 搜索框 -->
       <div class="search">
         <input
-          type="text"
-          v-model="searchText"
-          placeholder="搜索水果..."
-          @keyup.enter="search"
+            type="text"
+            v-model="searchText"
+            placeholder="搜索水果..."
+            @keyup.enter="search"
         />
         <button @click="search">搜索</button>
       </div>
     </header>
 
-    <!-- ================= 轮播图 ================= -->
     <section class="banner">
       <div
-        class="banner-box"
-        :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
+          class="banner-box"
+          :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
       >
         <img
-          v-for="b in banners"
-          :key="b.id"
-          :src="b.img_url"
+            v-for="b in banners"
+            :key="b.id"
+            :src="b.img_url"
         />
       </div>
     </section>
 
-    <!-- 公告 -->
     <section class="news">
       <h2>📢 最新公告</h2>
       <ul>
@@ -67,19 +59,17 @@
       </ul>
     </section>
 
-    <!-- 促销 -->
     <section class="promo">
       <h2>🔥 促销活动</h2>
       <div class="promo-list">
         <div class="promo-card" v-for="p in promos" :key="p.id">
           <h3>{{ p.title }}</h3>
-          <p>水果ID：{{ p.fruitId }}</p>
-          <p class="price">￥{{ p.discountPrice }}</p>
+          <p>水果ID：{{ p.fruit_id }}</p>
+          <p class="price">￥{{ p.discount_price }}</p>
         </div>
       </div>
     </section>
 
-    <!-- 商品 -->
     <section class="product-section">
       <h2>🍓 热门水果</h2>
 
@@ -94,14 +84,12 @@
         </div>
       </div>
 
-      <!-- 加载提示 -->
       <div class="load-more" v-if="hasMore">
         <p v-if="loading">加载中...</p>
         <p v-else>下拉加载更多...</p>
       </div>
     </section>
 
-    <!-- 页脚 -->
     <footer class="footer">
       © 2026 水果商城
     </footer>
@@ -110,7 +98,7 @@
 </template>
 
 <script>
-//import axios from 'axios'
+import axios from 'axios'
 export default {
   name: "HomeView",
   data() {
@@ -123,41 +111,31 @@ export default {
       isLogin: false,
       username: "",
       cartCount: 0,
+      loadStep: 4, // 每次加载几个
+      loaded: 4,   // 当前显示数量
+      loading: false, // 防止重复加载
 
-      loadStep: 4,
-      loaded: 4,
-      loading: false,
-
-      
-      
-
+      // 数据结构融合：保留轮播图
       banners: [
         { id: 1, img_url: "https://picsum.photos/1200/300?1" },
         { id: 2, img_url: "https://picsum.photos/1200/300?2" },
         { id: 3, img_url: "https://picsum.photos/1200/300?3" }
       ],
+      // 融合：公告留空（准备走你的组件加载）
       newsList: [],
-      promos: [], // 空数组，由接口赋值
-      allFruits: [
-        { id: 1, name: "红富士苹果", price: 8.8, stock: 100, detail: "新鲜红富士苹果", picture: "https://picsum.photos/300/200?10" },
-        { id: 2, name: "青苹果", price: 7.5, stock: 50, detail: "酸甜可口", picture: "https://picsum.photos/300/200?11" },
-        { id: 3, name: "砂糖橘", price: 12.5, stock: 80, detail: "广西砂糖橘", picture: "https://picsum.photos/300/200?12" },
-        { id: 4, name: "泰国榴莲", price: 58, stock: 30, detail: "进口金枕榴莲", picture: "https://picsum.photos/300/200?13" },
-        { id: 5, name: "香蕉", price: 5.5, stock: 120, detail: "热带香蕉", picture: "https://picsum.photos/300/200?14" },
-        { id: 6, name: "草莓", price: 15.0, stock: 60, detail: "新鲜草莓", picture: "https://picsum.photos/300/200?15" },
-        { id: 7, name: "葡萄", price: 18.0, stock: 70, detail: "甜美葡萄", picture: "https://picsum.photos/300/200?16" },
-        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.photos/300/200?17" }
-      ]
+      // 融合：促销保留队友的数据或空（此处同步保留远程结构的初始化）
+      promos: [],
+      // 从后端拉取全量水果
+      allFruits: []
     };
   },
   computed: {
     filteredFruits() {
       return this.allFruits
-        .filter(f => f.name.includes(this.searchText))
-        .slice(0, this.loaded);
+          .filter(f => f.name.includes(this.searchText))
+          .slice(0, this.loaded);
     },
     hasMore() {
-      // 空数组兜底，没数据时length=0
       const list = this.allFruits || []
       return this.loaded < list.length;
     }
@@ -165,23 +143,31 @@ export default {
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
+    this.getFruitFromBackend();
 
-    this.getPromotionData(); // 初始化加载促销
+    // 融合：保留你负责的公告和促销方法的调用流程
     this.getNewsData();
+
+    // 融合：保留队友检测本地用户登录状态的逻辑
+    const user = localStorage.getItem("user");
+    if (user) {
+      const userInfo = JSON.parse(user);
+      if (userInfo.role === "user") {
+        this.isLogin = true;
+        this.username = userInfo.username;
+      }
+    }
   },
   beforeUnmount() {
     clearInterval(this.timer);
     window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
-    //新增获取公告接口
+    // 融合：保留你新增的获取公告接口方法
     async getNewsData() {
       try {
-        // 注意路径大小写：/NewsServlet，默认不传 action 就是 list 列表
         const res = await fetch("http://localhost:8082/fruit-backend/NewsServlet");
         const data = await res.json();
-
-        // 因为你的后端 executeList 直接返回的是 List 数组，所以这里直接赋值给 newsList
         if (Array.isArray(data)) {
           this.newsList = data;
         }
@@ -189,26 +175,32 @@ export default {
         console.error("前台公告加载异常:", e);
       }
     },
-    // 新增拉取促销接口
-    async getPromotionData() {
+
+    // 融合：保留队友修改的 getFruitFromBackend，带上搜索文本
+    async getFruitFromBackend() {
       try {
-        const res = await fetch("http://localhost:8082/fruit-backend/promotion");
-        const data = await res.json();
-        if (data.code === 200) {
-          this.promos = data.promotions;
-        }
-      } catch (e) {
-        console.log("促销加载异常", e);
+        const res = await axios.get(`${this.baseURL}/fruitQueryList`, {
+          params: {
+            name: this.searchText,
+            minPrice: "",
+            maxPrice: ""
+          }
+        })
+        this.allFruits = res.data.fruits || []
+      } catch (err) {
+        console.error("水果数据加载失败", err)
       }
     },
+
     startBanner() {
       this.timer = setInterval(() => {
         this.currentIndex = (this.currentIndex + 1) % this.banners.length;
       }, 3000);
     },
     search() {
-
-      this.loaded = this.loadStep;
+      const key = this.searchText.trim()
+      if (!key) return
+      this.$router.push({ path: "/search", query: { keyword: key } })
     },
     loadMore() {
       const list = this.allFruits || []
@@ -232,14 +224,9 @@ export default {
       alert(`${fruit.name} 已加入购物车`);
     },
     logout() {
-      // 移除 localStorage 用户信息
       localStorage.removeItem("user");
-
-      // 清空登录状态
       this.isLogin = false;
       this.username = "";
-
-      // 如果当前是 admin 页面，退回首页
       if (this.$route.path.startsWith("/admin")) {
         this.$router.push("/");
       }
@@ -511,7 +498,7 @@ body {
   }
 
   .nav {
-    display: none; /* 小屏先隐藏导航，避免挤爆 */
+    display: none;
   }
 }
 </style>
