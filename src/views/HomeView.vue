@@ -22,7 +22,7 @@
 
           <router-link to="/cart">🛒购物车({{ cartCount }})</router-link>
 
-          <router-link to="/admin/orders">📦我的订单</router-link>
+          <router-link to="/orders">📦我的订单</router-link>
 
           <a href="javascript:void(0)" @click="logout">退出登录</a>
         </template>

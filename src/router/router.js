@@ -16,10 +16,14 @@ import NotificationView from '../views/NotificationView.vue'
 import ConfigView from '../views/ConfigView.vue'
 
 
+
 // 普通页面
 import MyLogin from '../views/MyLogin.vue'
 import RegisterView from '../views/RegisterView.vue'
 import SearchView from '../views/SearchView.vue'
+import CartView from '../views/CartView.vue'
+import OrderView from '../views/OrderView.vue'
+
 
 const routes = [
   // 前台页面
@@ -28,6 +32,10 @@ const routes = [
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/search', name: 'search', component: SearchView },
   { path: '/promotions', name: 'promotions', component: PromotionView },
+  { path: '/cart', name: 'cart', component: CartView },
+  { path: '/orders', name: 'orders', component: OrderView },
+
+
   // 后台管理（导航栏固定）
   {
     path: '/admin',
