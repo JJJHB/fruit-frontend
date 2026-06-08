@@ -70,8 +70,8 @@
       <div class="promo-list">
         <div class="promo-card" v-for="p in promos" :key="p.id">
           <h3>{{ p.title }}</h3>
-          <p>水果ID：{{ p.fruitId }}</p>
-          <p class="price">￥{{ p.discountPrice }}</p>
+          <p>水果ID：{{ p.fruit_id }}</p>
+          <p class="price">￥{{ p.discount_price }}</p>
         </div>
       </div>
     </section>
@@ -120,13 +120,11 @@ export default {
       isLogin: false,
       username: "",
       cartCount: 0,
-
-      loadStep: 4,
-      loaded: 4,
-      loading: false,
-
-      
-      
+      loadStep: 4, // 每次加载几个
+      loaded: 4,   // 当前显示数量
+      loading: false, // 防止重复加载
+      // 从后端拉取全量水果，不再写死
+      allFruits: [],
 
       banners: [
         { id: 1, img_url: "https://picsum.photos/1200/300?1" },
@@ -138,16 +136,9 @@ export default {
         { id: 2, title: "泰国榴莲新品上市" },
         { id: 3, title: "系统维护公告：6月10日升级" }
       ],
-      promos: [], // 空数组，由接口赋值
-      fruits: [
-        { id: 1, name: "红富士苹果", price: 8.8, stock: 100, detail: "新鲜红富士苹果", picture: "https://picsum.photos/300/200?10" },
-        { id: 2, name: "青苹果", price: 7.5, stock: 50, detail: "酸甜可口", picture: "https://picsum.photos/300/200?11" },
-        { id: 3, name: "砂糖橘", price: 12.5, stock: 80, detail: "广西砂糖橘", picture: "https://picsum.photos/300/200?12" },
-        { id: 4, name: "泰国榴莲", price: 58, stock: 30, detail: "进口金枕榴莲", picture: "https://picsum.photos/300/200?13" },
-        { id: 5, name: "香蕉", price: 5.5, stock: 120, detail: "热带香蕉", picture: "https://picsum.photos/300/200?14" },
-        { id: 6, name: "草莓", price: 15.0, stock: 60, detail: "新鲜草莓", picture: "https://picsum.photos/300/200?15" },
-        { id: 7, name: "葡萄", price: 18.0, stock: 70, detail: "甜美葡萄", picture: "https://picsum.photos/300/200?16" },
-        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.pho
+      promos: [
+        { id: 1, fruit_id: 1, title: "苹果限时特价", discount_price: 6.8 },
+        { id: 2, fruit_id: 3, title: "砂糖橘促销", discount_price: 10.0 }
       ]
     };
   },
@@ -166,24 +157,33 @@ export default {
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
+    this.getFruitFromBackend();
 
-    this.getPromotionData(); // 初始化加载促销
-  },
-  beforeUnmount() {
-    clearInterval(this.timer);
-    window.removeEventListener("scroll", this.handleScroll);
+    const user = localStorage.getItem("user");
+    if (user) {
+      const userInfo = JSON.parse(user);
+
+      // 只处理普通用户登录
+      if (userInfo.role === "user") {
+        this.isLogin = true;
+        this.username = userInfo.username;
+      }
+    }
   },
   methods: {
-    // 新增拉取促销接口
-    async getPromotionData() {
+   // 修改getFruitFromBackend，带上搜索文本
+    async getFruitFromBackend() {
       try {
-        const res = await fetch("http://localhost:8082/fruit-backend/promotion");
-        const data = await res.json();
-        if (data.code === 200) {
-          this.promos = data.promotions;
-        }
-      } catch (e) {
-        console.log("促销加载异常", e);
+        const res = await axios.get(`${this.baseURL}/fruitQueryList`, {
+          params: {
+            name: this.searchText,
+            minPrice: "",
+            maxPrice: ""
+          }
+        })
+        this.allFruits = res.data.fruits || []
+      } catch (err) {
+        console.error("水果数据加载失败", err)
       }
     },
     startBanner() {
@@ -192,8 +192,10 @@ export default {
       }, 3000);
     },
     search() {
-
-      this.loaded = this.loadStep;
+      const key = this.searchText.trim()
+      if (!key) return
+      // 把输入内容通过query传给/search页面
+      this.$router.push({ path: "/search", query: { keyword: key } })
     },
     loadMore() {
       const list = this.allFruits || []
