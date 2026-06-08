@@ -9,7 +9,7 @@
         v-for="tab in tabs"
         :key="tab.key"
         :class="{ active: activeTab === tab.key }"
-        @click="activeTab = tab.key"
+        @click="switchTab(tab.key)"
       >
         {{ tab.label }}
       </button>
@@ -18,16 +18,22 @@
     <!-- 订单列表 -->
     <div class="order-list">
       <div
-        v-for="order in filteredOrders"
+        v-for="order in orders"
         :key="order.id"
         class="order-item"
       >
         <div>订单号：{{ order.id }}</div>
-        <div>金额：￥{{ order.amount }}</div>
+        <div>用户ID：{{ order.userId }}</div>
+        <div>收货地址ID：{{ order.addressId }}</div>
+        <div>水果ID：{{ order.fruitId }}</div>
+        <div>数量：{{ order.quantity }}</div>
+        <div>单价：￥{{ order.price }}</div>
+        <div>总价：￥{{ order.totalPrice }}</div>
         <div>状态：{{ order.status }}</div>
+        <div>下单时间：{{ order.createTime }}</div>
       </div>
 
-      <div v-if="filteredOrders.length === 0" class="empty">
+      <div v-if="orders.length === 0" class="empty">
         暂无订单
       </div>
     </div>
@@ -35,36 +41,46 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "OrderQueryView",
   data() {
     return {
-      activeTab: "unpaid",
-
       tabs: [
-        { key: "unshipped", label: "已发货订单" },
-        { key: "unpaid", label: "未支付订单" },
-        { key: "paid", label: "已支付订单" },
-        { key: "finished", label: "已完成订单" },
-        { key: "cancelled", label: "已取消订单" },
-        { key: "refunded", label: "已退款订单" }
+        { key: "待支付", label: "待支付" },
+        { key: "已支付", label: "已支付" },
+        { key: "待发货", label: "待发货" },
+        { key: "已发货", label: "已发货" },
+        { key: "已完成", label: "已完成" }
       ],
-
-      // 模拟数据（你后面可以换成接口）
-      orders: [
-        { id: "A001", amount: 99, status: "unpaid" },
-        { id: "A002", amount: 199, status: "paid" },
-        { id: "A003", amount: 59, status: "unshipped" },
-        { id: "A004", amount: 39, status: "finished" },
-        { id: "A005", amount: 88, status: "cancelled" },
-        { id: "A006", amount: 128, status: "refunded" }
-      ]
+      activeTab: "待支付", // 默认显示“待支付”
+      orders: []
     };
   },
+  mounted() {
+    this.fetchOrders(this.activeTab);
+  },
+  methods: {
+    // 切换Tab
+    switchTab(tabKey) {
+      this.activeTab = tabKey;
+      this.fetchOrders(tabKey);
+    },
 
-  computed: {
-    filteredOrders() {
-      return this.orders.filter(o => o.status === this.activeTab);
+    // 从后端获取订单
+    fetchOrders(status) {
+      axios
+        .get("http://localhost:8082/fruit-backend/ordersQuery", {
+          params: { status }
+        })
+        .then(res => {
+          this.orders = res.data;
+        })
+        .catch(err => {
+          console.error("获取订单失败:", err);
+          this.orders = [];
+        });
     }
   }
 };
