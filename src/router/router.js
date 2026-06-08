@@ -23,7 +23,7 @@ import RegisterView from '../views/RegisterView.vue'
 import SearchView from '../views/SearchView.vue'
 import CartView from '../views/CartView.vue'
 import OrderView from '../views/OrderView.vue'
-
+import FrontPromotionView from '../views/FrontPromotionView.vue'
 
 const routes = [
   // 前台页面
@@ -34,7 +34,7 @@ const routes = [
   { path: '/promotions', name: 'promotions', component: PromotionView },
   { path: '/cart', name: 'cart', component: CartView },
   { path: '/orders', name: 'orders', component: OrderView },
-
+  { path: '/frontpromotions', name: 'frontPromotions', component: FrontPromotionView },
 
   // 后台管理（导航栏固定）
   {

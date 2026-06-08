@@ -8,7 +8,7 @@
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/admin/fruit-categories">水果分类</router-link>
-        <router-link to="/promotions">活动中心</router-link>
+        <router-link to="/frontpromotions">活动中心</router-link>
       </nav>
 
       <div class="user">
