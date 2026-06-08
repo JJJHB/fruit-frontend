@@ -1,6 +1,7 @@
 <template>
   <div class="home">
 
+    <!-- 顶部导航 -->
     <header class="header">
       <div class="logo">🍎 水果商城</div>
 
@@ -11,6 +12,7 @@
       </nav>
 
       <div class="user">
+        <!-- 登录状态切换 -->
         <template v-if="!isLogin">
           <router-link to="/login">登录</router-link>
           <router-link to="/register">注册</router-link>
@@ -26,30 +28,33 @@
         </template>
       </div>
 
+      <!-- 搜索框 -->
       <div class="search">
         <input
-            type="text"
-            v-model="searchText"
-            placeholder="搜索水果..."
-            @keyup.enter="search"
+          type="text"
+          v-model="searchText"
+          placeholder="搜索水果..."
+          @keyup.enter="search"
         />
         <button @click="search">搜索</button>
       </div>
     </header>
 
+    <!-- ================= 轮播图 ================= -->
     <section class="banner">
       <div
-          class="banner-box"
-          :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
+        class="banner-box"
+        :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
       >
         <img
-            v-for="b in banners"
-            :key="b.id"
-            :src="b.img_url"
+          v-for="b in banners"
+          :key="b.id"
+          :src="b.img_url"
         />
       </div>
     </section>
 
+    <!-- 公告 -->
     <section class="news">
       <h2>📢 最新公告</h2>
       <ul>
@@ -59,6 +64,7 @@
       </ul>
     </section>
 
+    <!-- 促销 -->
     <section class="promo">
       <h2>🔥 促销活动</h2>
       <div class="promo-list">
@@ -70,6 +76,7 @@
       </div>
     </section>
 
+    <!-- 商品 -->
     <section class="product-section">
       <h2>🍓 热门水果</h2>
 
@@ -84,12 +91,14 @@
         </div>
       </div>
 
+      <!-- 加载提示 -->
       <div class="load-more" v-if="hasMore">
         <p v-if="loading">加载中...</p>
         <p v-else>下拉加载更多...</p>
       </div>
     </section>
 
+    <!-- 页脚 -->
     <footer class="footer">
       © 2026 水果商城
     </footer>
@@ -114,24 +123,29 @@ export default {
       loadStep: 4, // 每次加载几个
       loaded: 4,   // 当前显示数量
       loading: false, // 防止重复加载
+      // 从后端拉取全量水果，不再写死
+      allFruits: [],
 
-      // 数据结构融合：保留轮播图
       banners: [],
-      // 融合：公告留空（准备走你的组件加载）
-      newsList: [],
-      // 融合：促销保留队友的数据或空（此处同步保留远程结构的初始化）
-      promos: [],
-      // 从后端拉取全量水果
-      allFruits: []
+      newsList: [
+        { id: 1, title: "端午节活动：满100减20" },
+        { id: 2, title: "泰国榴莲新品上市" },
+        { id: 3, title: "系统维护公告：6月10日升级" }
+      ],
+      promos: [
+        { id: 1, fruit_id: 1, title: "苹果限时特价", discount_price: 6.8 },
+        { id: 2, fruit_id: 3, title: "砂糖橘促销", discount_price: 10.0 }
+      ]
     };
   },
   computed: {
     filteredFruits() {
       return this.allFruits
-          .filter(f => f.name.includes(this.searchText))
-          .slice(0, this.loaded);
+        .filter(f => f.name.includes(this.searchText))
+        .slice(0, this.loaded);
     },
     hasMore() {
+      // 空数组兜底，没数据时length=0
       const list = this.allFruits || []
       return this.loaded < list.length;
     }
@@ -142,25 +156,34 @@ export default {
     this.getBannersFromBackend();
     this.getFruitFromBackend();
 
-    // 融合：保留你负责的公告和促销方法的调用流程
-    this.getNewsData();
-
-    // 融合：保留队友检测本地用户登录状态的逻辑
     const user = localStorage.getItem("user");
     if (user) {
       const userInfo = JSON.parse(user);
+
+      // 只处理普通用户登录
       if (userInfo.role === "user") {
         this.isLogin = true;
         this.username = userInfo.username;
       }
     }
   },
-  beforeUnmount() {
-    clearInterval(this.timer);
-    window.removeEventListener("scroll", this.handleScroll);
-  },
   methods: {
-   // 修改getFruitFromBackend，带上搜索文本
+    async getBannersFromBackend() {
+      try {
+        const res = await axios.get(`${this.baseURL}/configQuery`);
+
+        this.banners = (res.data.configs || []).map(item => {
+          return {
+            id: item.id,
+            img_url: `${this.baseURL}/upload/${item.imgUrl}` // 注意拼接 upload 路径
+          }
+        });
+
+      } catch (err) {
+        console.error("轮播图加载失败", err);
+      }
+    },
+    // 修改getFruitFromBackend，带上搜索文本
     async getFruitFromBackend() {
       try {
         const res = await axios.get(`${this.baseURL}/fruitQueryList`, {
@@ -175,7 +198,6 @@ export default {
         console.error("水果数据加载失败", err)
       }
     },
-
     startBanner() {
       this.timer = setInterval(() => {
         this.currentIndex = (this.currentIndex + 1) % this.banners.length;
@@ -184,6 +206,7 @@ export default {
     search() {
       const key = this.searchText.trim()
       if (!key) return
+      // 把输入内容通过query传给/search页面
       this.$router.push({ path: "/search", query: { keyword: key } })
     },
     loadMore() {
@@ -208,9 +231,14 @@ export default {
       alert(`${fruit.name} 已加入购物车`);
     },
     logout() {
+      // 移除 localStorage 用户信息
       localStorage.removeItem("user");
+
+      // 清空登录状态
       this.isLogin = false;
       this.username = "";
+
+      // 如果当前是 admin 页面，退回首页
       if (this.$route.path.startsWith("/admin")) {
         this.$router.push("/");
       }
@@ -487,7 +515,7 @@ body {
   }
 
   .nav {
-    display: none;
+    display: none; /* 小屏先隐藏导航，避免挤爆 */
   }
 }
 </style>
