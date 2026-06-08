@@ -1,262 +1,505 @@
 <template>
   <div class="home">
 
-<!-- 顶部导航 -->
-<header class="header">
-  <div class="logo">
-    🍎 水果商城
-  </div>
+    <!-- 顶部导航 -->
+    <header class="header">
+      <div class="logo">🍎 水果商城</div>
 
-  <nav class="nav">
-    <a href="#">首页</a>
-    <a href="#">水果分类</a>
-    <a href="#">购物车</a>
-    <a href="#">我的订单</a>
-  </nav>
+      <nav class="nav">
+        <router-link to="/">首页</router-link>
+        <router-link to="/admin/fruit-categories">水果分类</router-link>
+        <router-link to="/admin/orders">我的订单</router-link>
+        <router-link to="/admin/carousel">活动中心</router-link>
+      </nav>
 
-  <div class="user">
-    <router-link to="/login">登录</router-link>
-    <router-link to="/register">注册</router-link>
-  </div>
-</header>
+      <div class="user">
+        <!-- 登录状态切换 -->
+        <template v-if="!isLogin">
+          <router-link to="/login">登录</router-link>
+          <router-link to="/register">注册</router-link>
+        </template>
+        <template v-else>
+          <span>👤 {{ username }}</span>
 
-<!-- 横幅 -->
-<section class="banner">
-  <h1>新鲜水果 · 当日配送</h1>
-  <p>精选优质水果，让健康触手可及</p>
-</section>
+          <router-link to="/cart">
+            🛒购物车({{ cartCount }})
+          </router-link>
 
-<!-- 热门水果 -->
-<section class="product-section">
-  <h2>热门水果</h2>
+          <a href="javascript:void(0)" @click="logout">
+            退出登录
+          </a>
+        </template>
+      </div>
 
-  <div class="product-list">
-    <div class="product-card" v-for="fruit in fruits" :key="fruit.id">
-      <img :src="fruit.image" alt="" />
+      <!-- 搜索框 -->
+      <div class="search">
+        <input
+          type="text"
+          v-model="searchText"
+          placeholder="搜索水果..."
+          @keyup.enter="search"
+        />
+        <button @click="search">搜索</button>
+      </div>
+    </header>
 
-      <h3>{{ fruit.name }}</h3>
+    <!-- ================= 轮播图 ================= -->
+    <section class="banner">
+      <div
+        class="banner-box"
+        :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
+      >
+        <img
+          v-for="b in banners"
+          :key="b.id"
+          :src="b.img_url"
+        />
+      </div>
+    </section>
 
-      <p class="price">
-        ￥{{ fruit.price }}
-      </p>
+    <!-- 公告 -->
+    <section class="news">
+      <h2>📢 最新公告</h2>
+      <ul>
+        <li v-for="n in newsList" :key="n.id">
+          {{ n.title }}
+        </li>
+      </ul>
+    </section>
 
-      <button>
-        加入购物车
-      </button>
-    </div>
-  </div>
-</section>
+    <!-- 促销 -->
+    <section class="promo">
+      <h2>🔥 促销活动</h2>
+      <div class="promo-list">
+        <div class="promo-card" v-for="p in promos" :key="p.id">
+          <h3>{{ p.title }}</h3>
+          <p>水果ID：{{ p.fruitId }}</p>
+          <p class="price">￥{{ p.discountPrice }}</p>
+        </div>
+      </div>
+    </section>
 
-<!-- 页脚 -->
-<footer class="footer">
-  © 2026 水果商城 版权所有
-</footer>
-```
+    <!-- 商品 -->
+    <section class="product-section">
+      <h2>🍓 热门水果</h2>
+
+      <div class="product-list">
+        <div class="product-card" v-for="f in filteredFruits" :key="f.id">
+          <img :src="f.picture ? `${baseURL}/upload/${f.picture}` : defaultImg" />
+          <h3>{{ f.name }}</h3>
+          <p class="desc">{{ f.detail }}</p>
+          <p class="price">￥{{ f.price }}</p>
+          <p class="stock">库存：{{ f.stock }}</p>
+          <button @click="addToCart(f)">加入购物车</button>
+        </div>
+      </div>
+
+      <!-- 加载提示 -->
+      <div class="load-more" v-if="hasMore">
+        <p v-if="loading">加载中...</p>
+        <p v-else>下拉加载更多...</p>
+      </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      © 2026 水果商城
+    </footer>
 
   </div>
 </template>
 
 <script>
+import axios from 'axios'
 export default {
   name: "HomeView",
-
   data() {
     return {
+      baseURL: "http://localhost:8082/fruit-backend",
+      currentIndex: 0,
+      timer: null,
+      defaultImg: "https://picsum.photos/300/200",
+      searchText: "",
+      isLogin: false,
+      username: "",
+      cartCount: 0,
+
+      loadStep: 4,
+      loaded: 4,
+      loading: false,
+
+      
+      
+
+      banners: [
+        { id: 1, img_url: "https://picsum.photos/1200/300?1" },
+        { id: 2, img_url: "https://picsum.photos/1200/300?2" },
+        { id: 3, img_url: "https://picsum.photos/1200/300?3" }
+      ],
+      newsList: [
+        { id: 1, title: "端午节活动：满100减20" },
+        { id: 2, title: "泰国榴莲新品上市" },
+        { id: 3, title: "系统维护公告：6月10日升级" }
+      ],
+      promos: [], // 空数组，由接口赋值
       fruits: [
-        {
-          id: 1,
-          name: "红富士苹果",
-          price: 8.8,
-          image: "https://picsum.photos/300/200?1"
-        },
-        {
-          id: 2,
-          name: "香蕉",
-          price: 5.9,
-          image: "https://picsum.photos/300/200?2"
-        },
-        {
-          id: 3,
-          name: "橙子",
-          price: 12.8,
-          image: "https://picsum.photos/300/200?3"
-        },
-        {
-          id: 4,
-          name: "草莓",
-          price: 18.8,
-          image: "https://picsum.photos/300/200?4"
-        },
-        {
-          id: 5,
-          name: "葡萄",
-          price: 15.8,
-          image: "https://picsum.photos/300/200?5"
-        },
-        {
-          id: 6,
-          name: "西瓜",
-          price: 25.8,
-          image: "https://picsum.photos/300/200?6"
-        }
+        { id: 1, name: "红富士苹果", price: 8.8, stock: 100, detail: "新鲜红富士苹果", picture: "https://picsum.photos/300/200?10" },
+        { id: 2, name: "青苹果", price: 7.5, stock: 50, detail: "酸甜可口", picture: "https://picsum.photos/300/200?11" },
+        { id: 3, name: "砂糖橘", price: 12.5, stock: 80, detail: "广西砂糖橘", picture: "https://picsum.photos/300/200?12" },
+        { id: 4, name: "泰国榴莲", price: 58, stock: 30, detail: "进口金枕榴莲", picture: "https://picsum.photos/300/200?13" },
+        { id: 5, name: "香蕉", price: 5.5, stock: 120, detail: "热带香蕉", picture: "https://picsum.photos/300/200?14" },
+        { id: 6, name: "草莓", price: 15.0, stock: 60, detail: "新鲜草莓", picture: "https://picsum.photos/300/200?15" },
+        { id: 7, name: "葡萄", price: 18.0, stock: 70, detail: "甜美葡萄", picture: "https://picsum.photos/300/200?16" },
+        { id: 8, name: "橙子", price: 9.8, stock: 90, detail: "橙子新鲜", picture: "https://picsum.pho
       ]
+    };
+  },
+  computed: {
+    filteredFruits() {
+      return this.allFruits
+        .filter(f => f.name.includes(this.searchText))
+        .slice(0, this.loaded);
+    },
+    hasMore() {
+      // 空数组兜底，没数据时length=0
+      const list = this.allFruits || []
+      return this.loaded < list.length;
+    }
+  },
+  mounted() {
+    this.startBanner();
+    window.addEventListener("scroll", this.handleScroll);
+
+    this.getPromotionData(); // 初始化加载促销
+  },
+  beforeUnmount() {
+    clearInterval(this.timer);
+    window.removeEventListener("scroll", this.handleScroll);
+  },
+  methods: {
+    // 新增拉取促销接口
+    async getPromotionData() {
+      try {
+        const res = await fetch("http://localhost:8082/fruit-backend/promotion");
+        const data = await res.json();
+        if (data.code === 200) {
+          this.promos = data.promotions;
+        }
+      } catch (e) {
+        console.log("促销加载异常", e);
+      }
+    },
+    startBanner() {
+      this.timer = setInterval(() => {
+        this.currentIndex = (this.currentIndex + 1) % this.banners.length;
+      }, 3000);
+    },
+    search() {
+
+      this.loaded = this.loadStep;
+    },
+    loadMore() {
+      const list = this.allFruits || []
+      if (this.loading || this.loaded >= list.length) return;
+      this.loading = true;
+      setTimeout(() => {
+        this.loaded = Math.min(this.loaded + this.loadStep, list.length);
+        this.loading = false;
+      }, 500);
+    },
+    handleScroll() {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      const windowHeight = window.innerHeight;
+      const scrollHeight = document.documentElement.scrollHeight;
+      if (scrollTop + windowHeight + 100 >= scrollHeight) {
+        this.loadMore();
+      }
+    },
+    addToCart(fruit) {
+      this.cartCount++;
+      alert(`${fruit.name} 已加入购物车`);
+    },
+    logout() {
+      // 移除 localStorage 用户信息
+      localStorage.removeItem("user");
+
+      // 清空登录状态
+      this.isLogin = false;
+      this.username = "";
+
+      // 如果当前是 admin 页面，退回首页
+      if (this.$route.path.startsWith("/admin")) {
+        this.$router.push("/");
+      }
     }
   }
-}
+};
 </script>
 
-<style scoped>
+<style>
+/* ===== 全局基础 ===== */
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
+body {
+  background: #f5f6f7;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 .home {
-  min-height: 100vh;
-  background: #f5f7fa;
+  width: 100%;
+  padding-top: 80px;
 }
 
-/* 顶部导航 */
+/* ===== 统一内容宽度容器 ===== */
+.container {
+  width: 1200px;
+  margin: 0 auto;
+}
 
+/* ===== header ===== */
 .header {
-  height: 70px;
-  background: #fff;
-
+  width: 1200px;
+  margin: 15px auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 
-  padding: 0 40px;
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 
-  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  gap: 15px;
+
+  /* 固定置顶 */
+  position: fixed;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 999;
+  margin-top:8px;
 }
-
+/* logo */
 .logo {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: bold;
-  color: #42b983;
+  white-space: nowrap;
 }
 
+/* 导航 */
 .nav {
+  flex: 1;
   display: flex;
-  gap: 30px;
+  justify-content: center;
+  gap: 22px;
+  flex-wrap: wrap;
 }
 
 .nav a {
   text-decoration: none;
-  color: #333;
+  color: #444;
+  font-size: 14px;
+  transition: 0.2s;
 }
 
+.nav a:hover {
+  color: #2ecc71;
+}
+
+/* 用户区域 */
 .user {
   display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+/* 搜索 */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search input {
+  width: 180px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+}
+
+.search button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #2ecc71;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ===== banner ===== */
+.banner {
+  width: 1200px;
+  margin: 15px auto;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.banner-box {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+
+.banner-box img {
+  width: 1200px;
+  height: 300px;
+  object-fit: cover;
+}
+
+/* ===== 公告 ===== */
+.news {
+  width: 1200px;
+  margin: 20px auto;
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.news h2 {
+  margin-bottom: 10px;
+}
+
+.news li {
+  list-style: none;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+/* ===== 促销 ===== */
+.promo {
+  width: 1200px;
+  margin: 20px auto;
+}
+
+.promo-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 15px;
 }
 
-.user a {
-  color: #409eff;
-  text-decoration: none;
+.promo-card {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
-/* banner */
-
-.banner {
-  height: 350px;
-
-  background: linear-gradient(
-    135deg,
-    #42b983,
-    #67c23a
-  );
-
-  color: white;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.price {
+  color: #e74c3c;
+  font-weight: bold;
 }
 
-.banner h1 {
-  font-size: 46px;
-  margin-bottom: 15px;
-}
-
-.banner p {
-  font-size: 20px;
-}
-
-/* 商品区域 */
-
+/* ===== 商品区 ===== */
 .product-section {
   width: 1200px;
-  margin: 40px auto;
-}
-
-.product-section h2 {
-  margin-bottom: 25px;
+  margin: 20px auto;
 }
 
 .product-list {
   display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 25px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
 }
 
 .product-card {
-  background: white;
+  background: #fff;
+  padding: 12px;
   border-radius: 12px;
-  padding: 15px;
-  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  transition: 0.2s;
+}
 
-  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+.product-card:hover {
+  transform: translateY(-3px);
 }
 
 .product-card img {
   width: 100%;
-  height: 220px;
+  height: 150px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .product-card h3 {
-  margin: 15px 0;
+  font-size: 16px;
+  margin: 8px 0;
 }
 
-.price {
-  color: red;
-  font-size: 22px;
-  font-weight: bold;
+.desc {
+  font-size: 12px;
+  color: #666;
+}
+
+.stock {
+  font-size: 12px;
+  color: #999;
 }
 
 .product-card button {
-  margin-top: 12px;
-
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px;
   border: none;
-  background: #42b983;
-
-  color: white;
-
-  padding: 10px 20px;
-  border-radius: 8px;
-
+  border-radius: 6px;
+  background: #2ecc71;
+  color: #fff;
   cursor: pointer;
 }
 
-.product-card button:hover {
-  opacity: 0.9;
+/* ===== 加载 ===== */
+.load-more {
+  text-align: center;
+  margin: 15px 0;
+  color: #888;
 }
 
-/* 页脚 */
-
+/* ===== footer ===== */
 .footer {
-  height: 80px;
+  width: 1200px;
+  margin: 30px auto;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+}
 
-  background: #2c3e50;
-  color: white;
+/* ===== 响应式 ===== */
+@media (max-width: 1200px) {
+  .header,
+  .banner,
+  .news,
+  .promo,
+  .product-section,
+  .footer {
+    width: 95%;
+  }
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  .product-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-  margin-top: 50px;
+  .promo-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nav {
+    display: none; /* 小屏先隐藏导航，避免挤爆 */
+  }
 }
 </style>

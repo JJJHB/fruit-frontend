@@ -73,6 +73,7 @@
 </template>
 
 <script>
+import axios from "axios"
 import { ElMessage } from "element-plus"
 
 export default {
@@ -81,8 +82,8 @@ export default {
   data() {
     return {
       form: {
-        username: "",
-        password: "",
+        username: "myname",
+        password: "123456",
         sex: "男",
         phone: "",
         picture: "",
@@ -97,9 +98,8 @@ export default {
             trigger: "blur"
           },
           {
-            min: 3,
-            max: 20,
-            message: "账号长度3-20位",
+            pattern: /^[a-zA-Z0-9_]{3,20}$/,
+            message: "账号只能包含字母、数字、下划线，长度3-20位",
             trigger: "blur"
           }
         ],
@@ -111,8 +111,8 @@ export default {
             trigger: "blur"
           },
           {
-            min: 6,
-            message: "密码至少6位",
+            pattern: /^.{6,20}$/,
+            message: "密码长度6-20位",
             trigger: "blur"
           }
         ],
@@ -135,23 +135,39 @@ export default {
 
   methods: {
     submitForm() {
-      this.$refs.registerForm.validate((valid) => {
+      this.$refs.registerForm.validate(async (valid) => {
+
         if (!valid) {
           return
         }
 
-        console.log(this.form)
+        try {
 
-        /*
-        axios.post(
-          "http://localhost:8080/user/register",
-          this.form
-        )
-        */
+          const res = await axios.post(
+            "http://localhost:8082/fruit-backend/register",
+            this.form
+          )
 
-        ElMessage.success("注册成功")
+          if (res.data.code === 200) {
 
-        this.$router.push("/login")
+            ElMessage.success(res.data.msg)
+
+            setTimeout(() => {
+              this.$router.push("/login")
+            }, 1000)
+
+          } else {
+
+            ElMessage.error(res.data.msg)
+
+          }
+
+        } catch (e) {
+
+          ElMessage.error("服务器连接失败")
+
+        }
+
       })
     },
 

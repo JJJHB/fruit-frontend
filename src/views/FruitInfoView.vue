@@ -11,10 +11,6 @@
         <label>水果名称:</label>
         <input type="text" placeholder="水果名称" v-model="search.name" />
       </div>
-      <div class="search-item">
-        <label>产地:</label>
-        <input type="text" placeholder="产地" v-model="search.chandi" />  <!-- 已修复 -->
-      </div>
       <div class="search-item price">
         <label>价格:</label>
         <input type="text" placeholder="最小价格" v-model="search.minPrice" />
@@ -35,44 +31,37 @@
       </span>
       <span
         class="category-item"
-        :class="{ active: activeCategory === `水果分类${i}` }"
-        @click="filterByCategory(`水果分类${i}`)"
-        v-for="i in 8"
-        :key="i"
+        :class="{ active: activeCategory === cate }"
+        @click="filterByCategory(cate)"
+        v-for="cate in cateList"
+        :key="cate"
       >
-        水果分类{{ i }}
+        {{ cate }}
       </span>
     </div>
 
     <!-- 排序栏 -->
     <div class="sort-bar">
       <span class="sort-item" @click="sortByPrice">
-        价格 {{ sortField === 'price' ? (sortAsc ? '↑' : '↓') : '⇄' }}
-      </span>
-      <span class="sort-item" @click="sortByClick">
-        点击量 {{ sortField === 'clicknum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
-      </span>
-      <span class="sort-item" @click="sortByStore">
-        收藏数 {{ sortField === 'storeupnum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
-      </span>
-      <span class="sort-item" @click="sortByThumb">
-        点赞数 {{ sortField === 'thumbsupnum' ? (sortAsc ? '↑' : '↓') : '⇄' }}
-      </span>
+  价格 {{ sortField === 'price' ? (sortState===1?'↑':sortState===2?'↓':'⇄') : '⇄' }}
+</span>
+<span class="sort-item" @click="sortByClick">
+  点击量 {{ sortField === 'clicknum' ? (sortState===1?'↑':sortState===2?'↓':'⇄') : '⇄' }}
+</span>
     </div>
 
     <!-- 水果列表 -->
     <div class="fruit-list">
       <div class="fruit-card" v-for="item in showList" :key="item.id">
         <div class="card-img">
-          <img :src="item.shuiguotupian ? `${baseURL}/${item.shuiguotupian}` : 'https://via.placeholder.com/200'" alt="图片" />
+          <img :src="item.picture ? `${baseURL}/upload/${item.picture}` : 'https://via.placeholder.com/200'" alt="图片" />
         </div>
         <div class="card-info">
-          <p class="fruit-name">{{ item.shuiguomingcheng }}</p>
-          <p class="fruit-category">{{ item.shuiguofenlei }}</p>
+          <p class="fruit-name">{{ item.name }}</p>
+          <p class="fruit-category">分类：{{ item.categoryName }}</p>
           <p class="fruit-price">¥{{ item.price }}</p>
-          <p class="meta">发布时间: {{ item.addtime }}</p>
-          <p class="meta">点赞数: {{ item.thumbsupnum }}</p>
-          <p class="meta">收藏量: {{ item.storeupnum }}</p>
+          <p class="meta">库存数量：{{ item.stock }}件</p>
+          <p class="meta">详情：{{ item.detail }}</p>
           <p class="meta">点击量: {{ item.clicknum }}</p>
           <div class="card-actions">
             <button class="btn-edit" @click="handleEdit(item)">编辑</button>
@@ -88,15 +77,16 @@
         <h3>新增水果</h3>
         <div class="form-item">
           <label>水果名称</label>
-          <input v-model="addForm.shuiguomingcheng" type="text" placeholder="请输入水果名称" />
+          <input v-model="addForm.name" type="text" placeholder="请输入水果名称" />
         </div>
         <div class="form-item">
           <label>水果分类</label>
-          <input v-model="addForm.shuiguofenlei" type="text" placeholder="请输入分类" />
-        </div>
-        <div class="form-item">
-          <label>产地</label>
-          <input v-model="addForm.chandi" type="text" placeholder="产地" />
+          <select v-model="addForm.categoryId" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;">
+            <option value="">--请选择分类--</option>
+            <option v-for="item in cateSelectList" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
+          </select>
         </div>
         <div class="form-item">
           <label>价格</label>
@@ -104,11 +94,16 @@
         </div>
         <div class="form-item">
           <label>库存</label>
-          <input v-model="addForm.alllimittimes" type="number" placeholder="库存" />
+          <input v-model="addForm.stock" type="number" placeholder="库存" />
         </div>
         <div class="form-item">
-          <label>图片地址</label>
-          <input v-model="addForm.shuiguotupian" type="text" placeholder="图片名（如 1.jpg）" />
+          <label>详情/产地</label>
+          <input v-model="addForm.detail" type="text" placeholder="填写详情产地" />
+        </div>
+        <div class="form-item">
+          <label>上传水果图片</label>
+          <input type="file" accept="image/*" @change="uploadImgAdd($event)">
+          <span style="color:#666">已选：{{ addForm.picture || '未上传' }}</span>
         </div>
         <div class="dialog-btns">
           <button @click="closeAddDialog">取消</button>
@@ -123,15 +118,16 @@
         <h3>编辑水果</h3>
         <div class="form-item">
           <label>水果名称</label>
-          <input v-model="editForm.shuiguomingcheng" type="text" />
+          <input v-model="editForm.name" type="text" />
         </div>
         <div class="form-item">
           <label>水果分类</label>
-          <input v-model="editForm.shuiguofenlei" type="text" />
-        </div>
-        <div class="form-item">
-          <label>产地</label>
-          <input v-model="editForm.chandi" type="text" />
+          <select v-model="editForm.categoryId" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;">
+            <option value="">--请选择分类--</option>
+            <option v-for="item in cateSelectList" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
+          </select>
         </div>
         <div class="form-item">
           <label>价格</label>
@@ -139,11 +135,12 @@
         </div>
         <div class="form-item">
           <label>库存</label>
-          <input v-model="editForm.alllimittimes" type="number" />
+          <input v-model="editForm.stock" type="number" />
         </div>
         <div class="form-item">
-          <label>图片地址</label>
-          <input v-model="editForm.shuiguotupian" type="text" />
+          <label>重新上传图片(不换图留空)</label>
+          <input type="file" accept="image/*" @change="uploadImgEdit($event)">
+          <span style="color:#666">原图：{{ editForm.picture || '无' }}</span>
         </div>
         <div class="dialog-btns">
           <button @click="closeEditDialog">取消</button>
@@ -160,68 +157,163 @@ import axios from 'axios'
 
 const baseURL = 'http://localhost:8082/fruit-backend'
 
+// ------------------------------------ 定义初始化 ---------------------------------------
 // 数据列表
 const fruitList = ref([])
 const showList = ref([])
 const activeCategory = ref('')
-
+// 存放自动提取的分类名称
+const cateList = ref([])
 // 排序
 const sortField = ref('')
-const sortAsc = ref(true)
-
+const sortState = ref(0) // 0默认、1升序↑、2降序↓
 // 查询条件
 const search = ref({
   name: '',
-  chandi: '',
   minPrice: '',
   maxPrice: ''
 })
+// 下拉分类数据源 {id,name}
+const cateSelectList = ref([])
+
+// ------------------------------------ 查询和分类标签---------------------------------------
+// 查询
+const handleSearch = () => {
+  fetchFruitList()  // 👈 直接重新请求后端查询！
+}
+
+// 获取列表 + 自动提取分类
+const fetchFruitList = async () => {
+  try {
+    // 查询后重置排序为默认
+    sortField.value = ''
+    sortState.value = 0
+    const res = await axios.get(`${baseURL}/fruitQueryList`, { params: search.value })
+    fruitList.value = res.data.fruits || []
+    let temp = [...fruitList.value]
+    if(activeCategory.value){
+      temp = temp.filter(item=>item.categoryName === activeCategory.value)
+    }
+    showList.value = temp
+    const cates = [...new Set(fruitList.value.map(item => item.categoryName))]
+    cateList.value = cates
+  } catch (err) {
+    console.error('获取失败', err)
+  }
+}
+
+// 分类筛选
+const filterByCategory = (category) => {
+  activeCategory.value = category
+  let list = [...fruitList.value]
+  if (category) list = list.filter(item => item.categoryName === category)
+  doSort(list)
+}
+
+// ------------------------------------ 排序按钮 ---------------------------------------
+// 排序
+const doSort = (list) => {
+  // sortState=0 不排序，直接原数组
+  if (sortState.value === 0) {
+    showList.value = [...list]
+    return
+  }
+  const arr = [...list]
+  arr.sort((a, b) => {
+    const valA = Number(a[sortField.value]) || 0
+    const valB = Number(b[sortField.value]) || 0
+    //1升序，2降序
+    return sortState.value === 1 ? valA - valB : valB - valA
+  })
+  showList.value = arr
+}
+
+// 价格排序：默认→升序→降序→默认 循环
+const sortByPrice = ()=>{
+  if(sortField.value !== 'price'){
+    sortField.value = 'price'
+    sortState.value = 1
+  }else{
+    sortState.value = sortState.value >=2 ? 0 : sortState.value+1
+  }
+  filterByCategory(activeCategory.value)
+}
+
+// 点击量排序循环
+const sortByClick = ()=>{
+  if(sortField.value !== 'clicknum'){
+    sortField.value = 'clicknum'
+    sortState.value = 1
+  }else{
+    sortState.value = sortState.value >=2 ? 0 : sortState.value+1
+  }
+  filterByCategory(activeCategory.value)
+}
+
+// ------------------------------------ 新增按钮 ---------------------------------------
+// 加载下拉全部分类
+const loadSelectCate = async ()=>{
+  const res = await axios.get(`${baseURL}/getAllCate`)
+  cateSelectList.value = res.data
+}
 
 // 新增
 const showAddDialog = ref(false)
 const addForm = ref({
-  shuiguomingcheng: '',
-  shuiguofenlei: '',
-  chandi: '',
+  name: '',
+  categoryId: '', // 存分类数字ID！！
+  detail: '',
   price: '',
-  alllimittimes: '',
-  shuiguotupian: ''
-})
-
-// 编辑
-const showEditDialog = ref(false)
-const editForm = ref({
-  id: '',
-  shuiguomingcheng: '',
-  shuiguofenlei: '',
-  chandi: '',
-  price: '',
-  alllimittimes: '',
-  shuiguotupian: ''
+  stock: '',
+  picture: '',
+  clicknum: 0
 })
 
 // 打开/关闭 新增
 const openAddDialog = () => { showAddDialog.value = true }
 const closeAddDialog = () => {
   showAddDialog.value = false
-  addForm.value = { shuiguomingcheng: '', shuiguofenlei: '', chandi: '', price: '', alllimittimes: '', shuiguotupian: '' }
+  addForm.value = {
+    name: '',
+    categoryId: '',
+    detail: '',
+    price: '',
+    stock: '',
+    picture: '',
+    clicknum: 0
+  }
 }
 
-// 打开/关闭 编辑
-const handleEdit = (item) => {
-  editForm.value = { ...item }
-  showEditDialog.value = true
+// 新增弹窗上传图片
+const uploadImgAdd = async(e)=>{
+  let file = e.target.files[0]
+  if(!file) return
+  let formData = new FormData()
+  formData.append("img",file)
+  let res = await axios.post(`${baseURL}/uploadImg`,formData,{
+    headers:{"Content-Type":"multipart/form-data"}
+  })
+  if(res.data.code === 200){
+    // 把文件名存入表单，提交时存入数据库picture字段
+    addForm.value.picture = res.data.fileName
+  }
 }
-const closeEditDialog = () => { showEditDialog.value = false }
 
 // 保存新增
 const saveFruit = async () => {
   try {
-    const res = await axios.post(`${baseURL}/fruitAdd`, addForm.value, {
+    const formData = {
+      ...addForm.value,
+      categoryId: Number(addForm.value.categoryId),
+      price: Number(addForm.value.price) || 0,
+      stock: Number(addForm.value.stock) || 0,
+      clicknum: Number(addForm.value.clicknum) || 0
+    }
+
+    const res = await axios.post(`${baseURL}/fruitAdd`, formData, {
       headers: { 'Content-Type': 'application/json' }
     })
 
-    // 👇👇 这里是关键修复 👇👇
     if (res.data.code === 200) {
       alert('新增成功！')
       closeAddDialog()
@@ -229,20 +321,82 @@ const saveFruit = async () => {
     } else {
       alert('新增失败：' + res.data.msg)
     }
-
   } catch (err) {
     console.error(err)
     alert('新增失败：服务器异常')
   }
 }
 
-// 保存编辑（修复版）
+// ------------------------------------ 编辑按钮 ---------------------------------------
+// 编辑
+const showEditDialog = ref(false)
+const editForm = ref({
+  id: '',
+  name: '',
+  categoryId: '',
+  detail: '',
+  price: '',
+  stock: '',
+  picture: '',
+  clicknum: 0
+})
+
+// 打开/关闭 编辑
+const handleEdit = (item) => {
+  editForm.value = {
+    id: item.id,
+    name: item.name,
+    categoryId: item.categoryId ?? '', // 数据库分类ID赋值给下拉
+    detail: item.detail ?? '',
+    price: item.price,
+    stock: item.stock,
+    picture: item.picture ?? '',
+    clicknum: item.clicknum ?? 0
+  }
+  showEditDialog.value = true
+}
+const closeEditDialog = () => {
+  showEditDialog.value = false
+  // 关闭清空编辑表单
+  editForm.value = {
+    id: '',
+    name: '',
+    categoryId: '',
+    detail: '',
+    price: '',
+    stock: '',
+    picture: '',
+    clicknum: 0
+  }
+}
+
+// 编辑弹窗上传图片
+const uploadImgEdit = async(e)=>{
+  let file = e.target.files[0]
+  if(!file) return
+  let formData = new FormData()
+  formData.append("img",file)
+  let res = await axios.post(`${baseURL}/uploadImg`,formData,{
+    headers:{"Content-Type":"multipart/form-data"}
+  })
+  if(res.data.code === 200){
+    editForm.value.picture = res.data.fileName
+  }
+}
+
+// 保存编辑
 const updateFruit = async () => {
   try {
-    const res = await axios.post(`${baseURL}/fruitUpdate`, editForm.value, {
+    const formData = {
+      ...editForm.value,
+      categoryId: Number(editForm.value.categoryId),
+      price: Number(editForm.value.price) || 0,
+      stock: Number(editForm.value.stock) || 0,
+      clicknum: Number(editForm.value.clicknum) || 0
+    }
+    const res = await axios.post(`${baseURL}/fruitUpdate`, formData, {
       headers: { 'Content-Type': 'application/json' }
     })
-
     if (res.data.code === 200) {
       alert('修改成功！')
       closeEditDialog()
@@ -250,13 +404,13 @@ const updateFruit = async () => {
     } else {
       alert('修改失败：' + res.data.msg)
     }
-
   } catch (err) {
     console.error(err)
-    alert('修改失败')
+    alert('修改失败：服务器异常')
   }
 }
 
+// ------------------------------------ 删除按钮 ---------------------------------------
 // 删除
 const handleDelete = async (id) => {
   if (!confirm('确定删除？')) return
@@ -269,63 +423,7 @@ const handleDelete = async (id) => {
   }
 }
 
-// 查询
-const handleSearch = () => {
-  fetchFruitList()  // 👈 直接重新请求后端查询！
-}
-
-// 获取列表
-const fetchFruitList = async () => {
-  try {
-    const res = await axios.get(`${baseURL}/fruitQueryList`, { params: search.value })
-    fruitList.value = res.data.fruits || []
-    showList.value = [...fruitList.value]
-  } catch (err) {
-    console.error('获取失败', err)
-  }
-}
-
-// 分类筛选
-const filterByCategory = (category) => {
-  activeCategory.value = category
-  let list = [...fruitList.value]
-  if (category) list = list.filter(item => item.shuiguofenlei === category)
-  doSort(list)
-}
-
-// 排序
-const doSort = (list) => {
-  if (!sortField.value) {
-    showList.value = list
-    return
-  }
-  list.sort((a, b) => {
-    const valA = Number(a[sortField.value]) || 0
-    const valB = Number(b[sortField.value]) || 0
-    return sortAsc.value ? valA - valB : valB - valA
-  })
-  showList.value = list
-}
-
-// 排序触发
-const sortByPrice = () => {
-  sortField.value === 'price' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'price', sortAsc.value = true)
-  filterByCategory(activeCategory.value)
-}
-const sortByClick = () => {
-  sortField.value === 'clicknum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'clicknum', sortAsc.value = true)
-  filterByCategory(activeCategory.value)
-}
-const sortByStore = () => {
-  sortField.value === 'storeupnum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'storeupnum', sortAsc.value = true)
-  filterByCategory(activeCategory.value)
-}
-const sortByThumb = () => {
-  sortField.value === 'thumbsupnum' ? (sortAsc.value = !sortAsc.value) : (sortField.value = 'thumbsupnum', sortAsc.value = true)
-  filterByCategory(activeCategory.value)
-}
-
-onMounted(() => { fetchFruitList() })
+onMounted(() => { fetchFruitList() ,loadSelectCate() })
 </script>
 
 <style>
@@ -455,10 +553,14 @@ onMounted(() => { fetchFruitList() })
   font-size: 14px;
   color: #2c3e50;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .category-item.active {
   background: #409eff;
   color: white;
+}
+.category-item:hover:not(.active) {
+  background:#e1e5e9;
 }
 .sort-bar {
   display: flex;

@@ -18,7 +18,7 @@
 
       <!-- 表格 -->
       <el-table
-        :data="users"
+        :data="filteredUsers"
         border
         stripe
         max-height="600"
@@ -27,23 +27,22 @@
         <el-table-column type="selection" width="50" />
 
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="account" label="账号" />
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="role" label="角色" />
+        <el-table-column prop="username" label="账号" />
+        <el-table-column prop="sex" label="性别" />
         <el-table-column prop="phone" label="手机" />
+
+        <el-table-column label="余额">
+          <template #default="scope">
+            {{ Number(scope.row.money || 0).toFixed(2) }}
+          </template>
+        </el-table-column>
 
         <el-table-column label="头像" width="80">
           <template #default="scope">
             <el-image
-              :src="scope.row.avatar || defaultAvatar"
+              :src="scope.row.picture || defaultAvatar"
               style="width: 40px; height: 40px"
             />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="添加时间" width="180">
-          <template #default="scope">
-            {{ formatDate(scope.row.addtime) }}
           </template>
         </el-table-column>
 
@@ -58,25 +57,25 @@
       </el-table>
     </el-card>
 
-    <!-- ================== 弹窗 ================== -->
+    <!-- 弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
 
       <el-form :model="form" label-width="80px">
 
         <el-form-item label="账号">
-          <el-input v-model="form.account" />
+          <el-input v-model="form.username" />
         </el-form-item>
 
-        <el-form-item label="姓名">
-          <el-input v-model="form.name" />
-        </el-form-item>
-
-        <el-form-item label="角色">
-          <el-input v-model="form.role" />
+        <el-form-item label="性别">
+          <el-input v-model="form.sex" />
         </el-form-item>
 
         <el-form-item label="手机">
           <el-input v-model="form.phone" />
+        </el-form-item>
+
+        <el-form-item label="余额">
+          <el-input v-model="form.money" />
         </el-form-item>
 
       </el-form>
@@ -92,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const users = ref([])
@@ -103,47 +102,44 @@ const nameQuery = ref('')
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
-
 const isEdit = ref(false)
 
 const defaultAvatar = 'https://via.placeholder.com/40'
 
 const form = ref({
   id: null,
-  account: '',
-  name: '',
-  role: '',
+  username: '',
+  sex: '',
   phone: '',
-  avatar: ''
+  picture: '',
+  money: 0
 })
 
 /* ================= 查询 ================= */
 const fetchUsers = async () => {
-  try {
-    const res = await axios.get('http://localhost:8082/fruit-backend/userQueryList')
+  const res = await axios.get('http://localhost:8082/fruit-backend/yonghuQueryList')
 
-    if (res.data && Array.isArray(res.data.users)) {
-      users.value = res.data.users.map(u => ({
-        id: u.id,
-        account: u.username,
-        name: u.username,
-        role: u.role || '普通用户',
-        phone: u.phone || '',
-        avatar: u.image ? `http://localhost:8082/fruit-backend/${u.image}` : '',
-        addtime: u.addtime
-      }))
-    }
-  } catch (e) {
-    console.error(e)
+  if (res.data && Array.isArray(res.data.users)) {
+    users.value = res.data.users.map(u => ({
+      id: u.id,
+      username: u.username,
+      sex: u.sex || '',
+      phone: u.phone || '',
+      picture: u.picture ? `http://localhost:8082/fruit-backend/${u.picture}` : defaultAvatar,
+      money: u.money ?? 0
+    }))
   }
 }
 
-/* ================= 时间格式化 ================= */
-const formatDate = (addtime) => {
-  if (!addtime?.time) return ''
-  const d = new Date(addtime.time)
-  return d.toLocaleString()
-}
+/* ================= 前端筛选 ================= */
+const filteredUsers = computed(() => {
+  return users.value.filter(u => {
+    return (
+      u.username.includes(accountQuery.value) &&
+      (u.username.includes(nameQuery.value))
+    )
+  })
+})
 
 /* ================= 新增 ================= */
 const handleAdd = () => {
@@ -152,11 +148,11 @@ const handleAdd = () => {
 
   form.value = {
     id: null,
-    account: '',
-    name: '',
-    role: '',
+    username: '',
+    sex: '',
     phone: '',
-    avatar: ''
+    picture: '',
+    money: 0
   }
 
   dialogVisible.value = true
@@ -175,47 +171,34 @@ const handleView = (row) => {
   alert(JSON.stringify(row, null, 2))
 }
 
-/* ================= 保存（新增/修改） ================= */
+/* ================= 保存 ================= */
 const handleSave = async () => {
-  try {
-    if (isEdit.value) {
-      await axios.put('http://localhost:8082/fruit-backend/userUpdate', form.value)
-    } else {
-      await axios.post('http://localhost:8082/fruit-backend/userAdd', form.value)
-    }
-
-    dialogVisible.value = false
-    fetchUsers()
-  } catch (e) {
-    console.error(e)
+  if (isEdit.value) {
+    await axios.put('http://localhost:8082/fruit-backend/userUpdate', form.value)
+  } else {
+    await axios.post('http://localhost:8082/fruit-backend/userAdd', form.value)
   }
+
+  dialogVisible.value = false
+  fetchUsers()
 }
 
 /* ================= 删除 ================= */
 const handleDelete = async (row) => {
-  try {
-    await axios.delete(`http://localhost:8082/fruit-backend/userDelete/${row.id}`)
-    fetchUsers()
-  } catch (e) {
-    console.error(e)
-  }
+  await axios.delete(`http://localhost:8082/fruit-backend/userDelete/${row.id}`)
+  fetchUsers()
 }
 
 /* ================= 批量删除 ================= */
 const handleDeleteBatch = async () => {
-  if (!selectedUsers.value.length) {
-    return alert('请选择用户')
-  }
+  if (!selectedUsers.value.length) return alert('请选择用户')
 
   const ids = selectedUsers.value.map(i => i.id)
 
-  try {
-    await axios.post('http://localhost:8082/fruit-backend/userDeleteBatch', ids)
-    selectedUsers.value = []
-    fetchUsers()
-  } catch (e) {
-    console.error(e)
-  }
+  await axios.post('http://localhost:8082/fruit-backend/userDeleteBatch', ids)
+
+  selectedUsers.value = []
+  fetchUsers()
 }
 
 /* ================= 选择 ================= */
