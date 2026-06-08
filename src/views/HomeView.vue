@@ -66,8 +66,8 @@
       <div class="promo-list">
         <div class="promo-card" v-for="p in promos" :key="p.id">
           <h3>{{ p.title }}</h3>
-          <p>水果ID：{{ p.fruit_id }}</p>
-          <p class="price">￥{{ p.discount_price }}</p>
+          <p>水果ID：{{ p.fruitId }}</p>
+          <p class="price">￥{{ p.discountPrice }}</p>
         </div>
       </div>
     </section>
@@ -114,9 +114,9 @@ export default {
       isLogin: false,
       username: "小明",
       cartCount: 0,
-      loadStep: 4, // 每次加载几个
-      loaded: 4,   // 当前显示数量
-      loading: false, // 防止重复加载
+      loadStep: 4,
+      loaded: 4,
+      loading: false,
       banners: [
         { id: 1, img_url: "https://picsum.photos/1200/300?1" },
         { id: 2, img_url: "https://picsum.photos/1200/300?2" },
@@ -127,10 +127,7 @@ export default {
         { id: 2, title: "泰国榴莲新品上市" },
         { id: 3, title: "系统维护公告：6月10日升级" }
       ],
-      promos: [
-        { id: 1, fruit_id: 1, title: "苹果限时特价", discount_price: 6.8 },
-        { id: 2, fruit_id: 3, title: "砂糖橘促销", discount_price: 10.0 }
-      ],
+      promos: [], // 空数组，由接口赋值
       fruits: [
         { id: 1, name: "红富士苹果", price: 8.8, stock: 100, detail: "新鲜红富士苹果", picture: "https://picsum.photos/300/200?10" },
         { id: 2, name: "青苹果", price: 7.5, stock: 50, detail: "酸甜可口", picture: "https://picsum.photos/300/200?11" },
@@ -156,19 +153,32 @@ export default {
   mounted() {
     this.startBanner();
     window.addEventListener("scroll", this.handleScroll);
+    this.getPromotionData(); // 初始化加载促销
   },
   beforeUnmount() {
     clearInterval(this.timer);
     window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
+    // 新增拉取促销接口
+    async getPromotionData() {
+      try {
+        const res = await fetch("http://localhost:8082/fruit-backend/promotion");
+        const data = await res.json();
+        if (data.code === 200) {
+          this.promos = data.promotions;
+        }
+      } catch (e) {
+        console.log("促销加载异常", e);
+      }
+    },
     startBanner() {
       this.timer = setInterval(() => {
         this.currentIndex = (this.currentIndex + 1) % this.banners.length;
       }, 3000);
     },
     search() {
-      this.loaded = this.loadStep; // 搜索重置显示数量
+      this.loaded = this.loadStep;
     },
     loadMore() {
       if (this.loading || this.loaded >= this.fruits.length) return;
@@ -176,7 +186,7 @@ export default {
       setTimeout(() => {
         this.loaded = Math.min(this.loaded + this.loadStep, this.fruits.length);
         this.loading = false;
-      }, 500); // 模拟加载延迟
+      }, 500);
     },
     handleScroll() {
       const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
