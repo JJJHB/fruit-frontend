@@ -8,8 +8,7 @@
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/admin/fruit-categories">水果分类</router-link>
-        <router-link to="/admin/orders">我的订单</router-link>
-        <router-link to="/admin/carousel">活动中心</router-link>
+        <router-link to="/promotions">活动中心</router-link>
       </nav>
 
       <div class="user">
@@ -21,13 +20,11 @@
         <template v-else>
           <span>👤 {{ username }}</span>
 
-          <router-link to="/cart">
-            🛒购物车({{ cartCount }})
-          </router-link>
+          <router-link to="/cart">🛒购物车({{ cartCount }})</router-link>
 
-          <a href="javascript:void(0)" @click="logout">
-            退出登录
-          </a>
+          <router-link to="/admin/orders">📦我的订单</router-link>
+
+          <a href="javascript:void(0)" @click="logout">退出登录</a>
         </template>
       </div>
 

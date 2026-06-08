@@ -27,7 +27,7 @@ const routes = [
   { path: '/login', name: 'login', component: MyLogin },
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/search', name: 'search', component: SearchView },
-
+  { path: '/promotions', name: 'promotions', component: PromotionView },
   // 后台管理（导航栏固定）
   {
     path: '/admin',
