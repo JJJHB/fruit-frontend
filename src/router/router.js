@@ -24,8 +24,7 @@ import SearchView from '../views/SearchView.vue'
 import CartView from '../views/CartView.vue'
 import OrderView from '../views/OrderView.vue'
 import FrontPromotionView from '../views/FrontPromotionView.vue'
-import ProfileView from '../views/ProfileView.vue'
-
+import FruitDetail from '@/views/FruitDetail.vue'
 
 const routes = [
   // 前台页面
@@ -37,9 +36,7 @@ const routes = [
   { path: '/cart', name: 'cart', component: CartView },
   { path: '/orders', name: 'orders', component: OrderView },
   { path: '/frontpromotions', name: 'frontPromotions', component: FrontPromotionView },
-  { path: '/profile', name: 'profile', component: ProfileView },
-
-
+  { path: '/fruit-detail/:id', name: 'FruitDetail', component: FruitDetail },
   // 后台管理（导航栏固定）
   {
     path: '/admin',
