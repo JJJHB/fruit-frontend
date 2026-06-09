@@ -18,7 +18,7 @@
           <router-link to="/register">注册</router-link>
         </template>
         <template v-else>
-          <span>👤 {{ username }}</span>
+          <router-link to="/profile">👤 {{ username }}</router-link>
 
           <router-link to="/cart">🛒购物车({{ cartCount }})</router-link>
 
@@ -231,14 +231,13 @@ export default {
         return;
       }
 
-      const userId = user.id;
-
       axios.post(
-        "http://localhost:8082/fruit-backend/addCart",
+        "http://localhost:8082/fruit-backend/cart",
         null,
         {
           params: {
-            userId: userId,
+            action: "add",     // ⭐关键
+            userId: user.id,
             fruitId: fruitId,
             quantity: quantity
           }
@@ -246,7 +245,7 @@ export default {
       ).then(res => {
         if (res.data.code === 200) {
           alert("加入购物车成功");
-          this.cartCount += quantity; // 更新购物车数量
+          this.cartCount += quantity;
         } else {
           alert(res.data.msg);
         }
