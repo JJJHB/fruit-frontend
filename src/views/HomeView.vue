@@ -205,8 +205,8 @@ export default {
     window.addEventListener("scroll", this.handleScroll);
     this.getBannersFromBackend();
     this.getFruitFromBackend();
-
     const user = localStorage.getItem("user");
+
     if (user) {
       const userInfo = JSON.parse(user);
       if (userInfo.role === "user") {
@@ -280,9 +280,36 @@ export default {
         this.loadMore();
       }
     },
-    addToCart(fruit) {
-      this.cartCount++;
-      alert(`${fruit.name} 已加入购物车`);
+    addCart(fruitId, quantity = 1) {
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user || !user.id) {
+        alert("请先登录");
+        this.$router.push("/login");
+        return;
+      }
+
+      axios.post(
+        "http://localhost:8082/fruit-backend/cart",
+        null,
+        {
+          params: {
+            action: "add",     // ⭐关键
+            userId: user.id,
+            fruitId: fruitId,
+            quantity: quantity
+          }
+        }
+      ).then(res => {
+        if (res.data.code === 200) {
+          alert("加入购物车成功");
+          this.cartCount += quantity;
+        } else {
+          alert(res.data.msg);
+        }
+      }).catch(() => {
+        alert("网络异常");
+      });
     },
     logout() {
       localStorage.removeItem("user");

@@ -101,10 +101,16 @@ export default {
         const data = res.data;
 
         if (data.code === 200) {
+
           localStorage.setItem(
             "user",
             JSON.stringify({
-              username: this.username,
+              id: data.id,
+              username: data.username,
+              sex: data.sex,
+              phone: data.phone,
+              picture: data.picture,
+              money: data.money,
               role: data.role
             })
           );
@@ -118,7 +124,6 @@ export default {
         } else {
           alert(data.msg);
         }
-
       });
 
     }
