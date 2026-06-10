@@ -160,11 +160,7 @@ export default {
       clickOrder: null,
 
       banners: [],
-      newsList: [
-        { id: 1, title: "端午节活动：满100减20" },
-        { id: 2, title: "泰国榴莲新品上市" },
-        { id: 3, title: "系统维护公告：6月10日升级" }
-      ],
+      newsList: [],
       promos: [
         { id: 1, fruit_id: 1, title: "苹果限时特价", discount_price: 6.8 },
         { id: 2, fruit_id: 3, title: "砂糖橘促销", discount_price: 10.0 }
@@ -205,6 +201,7 @@ export default {
     window.addEventListener("scroll", this.handleScroll);
     this.getBannersFromBackend();
     this.getFruitFromBackend();
+    this.getNewsData();
     const user = localStorage.getItem("user");
 
     if (user) {
@@ -220,6 +217,21 @@ export default {
   window.removeEventListener("scroll", this.handleScroll);
 },
   methods: {
+    async getNewsData() {
+      try {
+        const res = await axios.get(`${this.baseURL}/NewsServlet`, {
+          params: {
+            action: "list",
+            title: ""
+          }
+        });
+        if (Array.isArray(res.data)) {
+          this.newsList = res.data;
+        }
+      } catch (e) {
+        console.error("前台公告加载异常:", e);
+      }
+    },
     // 记录并恢复滚动位置，解决抖动
     saveScroll() {
       return document.documentElement.scrollTop || document.body.scrollTop;
