@@ -59,7 +59,7 @@
         <div class="card-info">
           <p class="fruit-name">{{ item.name }}</p>
           <p class="fruit-category">分类：{{ item.categoryName }}</p>
-          <p class="fruit-price">¥{{ item.price }}</p>
+          <p class="fruit-price">¥{{ item.price }}/kg</p>
           <p class="meta">库存数量：{{ item.stock }}件</p>
           <p class="meta">详情：{{ item.detail }}</p>
           <p class="meta">点击量: {{ item.clicknum }}</p>
