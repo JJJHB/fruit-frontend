@@ -53,11 +53,31 @@
     <!-- 公告 -->
     <section class="news">
       <h2>📢 最新公告</h2>
-      <ul>
-        <li v-for="n in newsList" :key="n.id">
-          {{ n.title }}
+
+      <ul v-if="newsList.length">
+        <li
+          v-for="n in newsList"
+          :key="n.id"
+          class="news-item"
+          @click="showNews(n)"
+        >
+          <span>{{ n.title }}</span>
+          <span class="news-time">{{ formatTime(n.createTime) }}</span>
         </li>
       </ul>
+
+      <div v-else class="empty-news">
+        暂无公告
+      </div>
+
+      <!-- 弹窗 -->
+      <div v-if="showModal" class="modal-overlay" @click="closeModal">
+        <div class="modal-content" @click.stop>
+          <h3>{{ currentNews.title }}</h3>
+          <p>{{ currentNews.content }}</p>
+          <button @click="closeModal">关闭</button>
+        </div>
+      </div>
     </section>
 
     <!-- 促销 -->
@@ -153,7 +173,8 @@ export default {
       loaded: 4,
       loading: false,
       allFruits: [],
-
+      showModal: false,
+      currentNews: {},
       // 排序相关变量
       sortType: 'default',
       priceOrder: null,
@@ -217,19 +238,41 @@ export default {
   window.removeEventListener("scroll", this.handleScroll);
 },
   methods: {
+    formatTime(time) {
+      if (!time) return "";
+
+      const date = new Date(time);
+
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+
+      return `${y}-${m}-${d}`;
+    },
+    showNews(news) {
+      this.currentNews = news;
+      this.showModal = true;
+    },
+    closeModal() {
+      this.showModal = false;
+      this.currentNews = {};
+    },
     async getNewsData() {
       try {
-        const res = await axios.get(`${this.baseURL}/NewsServlet`, {
-          params: {
-            action: "list",
-            title: ""
+        const res = await axios.get(
+          `${this.baseURL}/news/list`,
+          {
+            params: {
+              title: ""
+            }
           }
-        });
+        );
+
         if (Array.isArray(res.data)) {
           this.newsList = res.data;
         }
       } catch (e) {
-        console.error("前台公告加载异常:", e);
+        console.error("公告加载失败", e);
       }
     },
     // 记录并恢复滚动位置，解决抖动
@@ -685,5 +728,67 @@ body {
   .nav {
     display: none;
   }
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.modal-content h3 {
+  margin-bottom: 12px;
+}
+
+.modal-content p {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.modal-content button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #2ecc71;
+  color: #fff;
+  cursor: pointer;
+}
+.news-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.news-item:hover {
+  color: #2ecc71;
+  padding-left: 8px;
+}
+
+.news-time {
+  color: #999;
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-left: 20px;
 }
 </style>

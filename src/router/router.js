@@ -23,10 +23,10 @@ import RegisterView from '../views/RegisterView.vue'
 import SearchView from '../views/SearchView.vue'
 import CartView from '../views/CartView.vue'
 import OrderView from '../views/OrderView.vue'
-import FrontPromotionView from '../views/FrontPromotionView.vue'
+// import FrontPromotionView from '../views/FrontPromotionView.vue'
 import ActivityView from '../views/ActivityView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import FruitDetail from '@/views/FruitDetail.vue'
+// import FruitDetail from '@/views/FruitDetail.vue'
 
 const routes = [
   // 前台页面
@@ -37,7 +37,7 @@ const routes = [
   { path: '/promotions', name: 'promotions', component: PromotionView },
   { path: '/cart', name: 'cart', component: CartView },
   { path: '/orders', name: 'orders', component: OrderView },
-  { path: '/frontpromotions', name: 'frontPromotions', component: FrontPromotionView },
+  // { path: '/frontpromotions', name: 'frontPromotions', component: FrontPromotionView },
   { path: '/profile', name: 'profile', component: ProfileView },
   { path: '/activity', name: 'activity', component: ActivityView },
 
