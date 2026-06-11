@@ -6,7 +6,6 @@
 
       <nav class="nav">
         <router-link to="/">首页</router-link>
-        <router-link to="/admin/fruit-categories">水果分类</router-link>
         <router-link to="/activity">活动中心</router-link>
       </nav>
 
@@ -18,7 +17,7 @@
         </template>
         <template v-else>
           <span>👤 {{ username }}</span>
-          <router-link to="/cart">🛒购物车({{ cartCount }})</router-link>
+          <router-link to="/cart">🛒购物车</router-link>
           <router-link to="/orders">📦我的订单</router-link>
           <a href="javascript:void(0)" @click="logout">退出登录</a>
         </template>
@@ -82,15 +81,27 @@
 
     <!-- 促销 -->
     <section class="promo">
-      <h2>🔥 促销活动</h2>
+    <h2>🔥 促销活动</h2>
       <div class="promo-list">
         <div class="promo-card" v-for="p in promos" :key="p.id">
           <h3>{{ p.title }}</h3>
-          <p>水果ID：{{ p.fruit_id }}</p>
-          <p class="price">￥{{ p.discount_price }}</p>
+          <div class="fruit-name">
+          🍎 {{ p.fruitName }}
+          </div>
+
+          <div class="price">
+            活动价：￥{{ p.discountPrice }}/kg
+          </div>
+
+          <div class="time">
+            活动时间：
+            {{ formatTime(p.startTime) }}
+            ~
+            {{ formatTime(p.endTime) }}
+          </div>
         </div>
       </div>
-    </section>
+  </section>
 
     <!-- 商品 -->
 <section class="product-section">
@@ -137,7 +148,7 @@
       <p class="price">￥{{ f.price }}/kg</p>
       <p class="clicknum">点击量：{{ f.clicknum }}</p>
       <!-- stop 阻止冒泡，点击按钮不跳详情 -->
-      <button @click.stop="addToCart(f)">加入购物车</button>
+      <button @click.stop="addCart(f.id)">加入购物车</button>
     </div>
   </div>
 
@@ -182,10 +193,7 @@ export default {
 
       banners: [],
       newsList: [],
-      promos: [
-        { id: 1, fruit_id: 1, title: "苹果限时特价", discount_price: 6.8 },
-        { id: 2, fruit_id: 3, title: "砂糖橘促销", discount_price: 10.0 }
-      ]
+      promos: [], // 改成空数组，后面从后台加载
     };
   },
   computed: {
@@ -223,6 +231,7 @@ export default {
     this.getBannersFromBackend();
     this.getFruitFromBackend();
     this.getNewsData();
+    this.getPromosData();
     const user = localStorage.getItem("user");
 
     if (user) {
@@ -238,6 +247,16 @@ export default {
   window.removeEventListener("scroll", this.handleScroll);
 },
   methods: {
+    async getPromosData() {
+      try {
+        const res = await axios.get(`${this.baseURL}/promotion`);
+        if (res.data.code === 200 && Array.isArray(res.data.promotions)) {
+          this.promos = res.data.promotions;
+        }
+      } catch (e) {
+        console.error("促销活动加载失败", e);
+      }
+    },
     formatTime(time) {
       if (!time) return "";
 
@@ -336,8 +355,12 @@ export default {
       }
     },
     addCart(fruitId, quantity = 1) {
-      const user = JSON.parse(localStorage.getItem("user"));
+      if (!fruitId) {
+        alert("水果 ID 无效");
+        return;
+      }
 
+      const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.id) {
         alert("请先登录");
         this.$router.push("/login");
@@ -345,13 +368,13 @@ export default {
       }
 
       axios.post(
-        "http://localhost:8082/fruit-backend/cart",
+        `${this.baseURL}/cart`,
         null,
         {
           params: {
-            action: "add",     // ⭐关键
+            action: "add",
             userId: user.id,
-            fruitId: fruitId,
+            fruitId: fruitId, // 现在肯定是数字
             quantity: quantity
           }
         }

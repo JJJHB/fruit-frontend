@@ -88,12 +88,34 @@ export default {
 
   methods: {
 
+    getUserId() {
+      const user = localStorage.getItem("user");
+      if (!user) return null;
+      try {
+        return JSON.parse(user).id;
+      } catch (e) {
+        return null;
+      }
+    },
+
     // 加载优惠券
     loadCoupons() {
+      const userId = this.getUserId();
+      if (!userId) return;
+
       axios
-        .get(`http://localhost:8082/fruit-backend/coupon?userId=${this.userId}`)
+        .get(`http://localhost:8082/fruit-backend/coupon`, {
+          params: {
+            action: "list",
+            userId: userId
+          }
+        })
         .then(res => {
-          this.couponList = res.data || [];
+          if (res.data.code === 200 && Array.isArray(res.data.coupons)) {
+            this.couponList = res.data.coupons;
+          } else {
+            this.couponList = [];
+          }
         })
         .catch(() => {
           console.log("加载优惠券失败");
@@ -102,15 +124,25 @@ export default {
 
     // 每日领券
     receiveCoupon() {
+      const userId = this.getUserId();
+      if (!userId) {
+        alert("请先登录");
+        return;
+      }
+
       axios
         .post(
-          "http://localhost:8082/fruit-backend/coupon/receive",
+          "http://localhost:8082/fruit-backend/coupon",
+          null,
           {
-            userId: this.userId
+            params: {
+              action: "receive",
+              userId: userId
+            }
           }
         )
         .then(res => {
-          alert(res.data.msg);
+          alert(res.data.msg + (res.data.couponName ? `：${res.data.couponName}` : ""));
           this.loadCoupons();
         })
         .catch(() => {
@@ -119,29 +151,56 @@ export default {
     },
 
     // 砸金蛋
-    smashEgg() {
-      axios
-        .post(
-          "http://localhost:8082/fruit-backend/egg/smash",
-          {
-            userId: this.userId
-          }
+  smashEgg() {
+
+    const user =
+      JSON.parse(
+        localStorage.getItem("user")
+      )
+
+    if(!user){
+      alert("请先登录")
+      return
+    }
+
+    axios.post(
+      "http://localhost:8082/fruit-backend/egg",
+      null,
+      {
+        params:{
+          userId:user.id
+        }
+      }
+    ).then(res=>{
+
+      if(res.data.code===200){
+
+        alert(
+          "🎉"+
+          res.data.couponName+
+          "\n剩余次数："+res.data.remainChance
         )
-        .then(res => {
-          alert(res.data.msg);
-          this.loadCoupons();
-        })
-        .catch(() => {
-          alert("砸蛋失败");
-        });
-    },
+
+        this.loadCoupons()
+
+      }else{
+
+        alert(res.data.msg)
+
+      }
+
+    })
+  },
 
     formatTime(time) {
       if (!time) return "";
-
-      return time.replace("T", " ");
+      const date = new Date(time);
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
     }
+
   }
+
+  
 };
 </script>
 

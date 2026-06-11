@@ -141,7 +141,7 @@ export default {
         return {
           ...order,
           name: fruit?.name || "未知商品",
-          image: fruit?.picture ? "http://localhost:8082/fruit-backend/"+fruit.picture : "",
+          image: fruit?.picture ? "http://localhost:8082/fruit-backend/upload/"+fruit.picture : "",
           quantity: order.quantity,
           price: order.price,
           totalPrice: order.totalPrice
