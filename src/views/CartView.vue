@@ -9,7 +9,6 @@
     <div v-else class="cart-container">
 
       <div class="cart-item" v-for="item in cartItems" :key="item.id">
-
         <img :src="item.image" class="img" />
 
         <div class="info">
@@ -27,10 +26,14 @@
           ￥{{ (item.price * item.count).toFixed(2) }}
         </div>
 
+        <!-- 单条下单按钮 -->
+        <button class="checkout-single" @click="checkoutSingle(item)">
+          下单
+        </button>
+
         <button class="delete" @click="removeItem(item.id)">
           删除
         </button>
-
       </div>
 
       <div class="footer">
@@ -38,7 +41,10 @@
           总计：<span>￥{{ totalPrice.toFixed(2) }}</span>
         </div>
 
-        <button class="checkout">去结算</button>
+        <!-- 一键下单按钮 -->
+        <button class="checkout" @click="checkoutAll">
+          一键下单
+        </button>
       </div>
 
     </div>
@@ -46,63 +52,88 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "CartView",
   data() {
     return {
       cartItems: [],
-      fruitList: [] // 所有水果信息
+      fruitList: []
     };
   },
-
   computed: {
     totalPrice() {
       return this.cartItems.reduce((sum, item) => {
-        const price = Number(item.price) || 0;
-        const count = Number(item.count) || 0;
-        return sum + price * count;
+        return sum + (Number(item.price) || 0) * (Number(item.count) || 0);
       }, 0);
     }
   },
-
   mounted() {
     this.loadData();
   },
-
   methods: {
-    // 统一加载
+
+    // 一键下单
+    async checkoutAll() {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const res = await axios.post(
+        "http://localhost:8082/fruit-backend/cart",
+        null,
+        { params: { action: "checkout", userId: user.id } }
+      );
+      if (res.data.code === 200) {
+        this.$message.success("下单成功");
+        this.loadData();
+      } else {
+        this.$message.error(res.data.msg);
+      }
+    },
+
+    // 单条下单
+    async checkoutSingle(item) {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const res = await axios.post(
+        "http://localhost:8082/fruit-backend/cart",
+        {
+          userId: user.id,
+          fruitId: item.fruitId,
+          quantity: item.count
+        },
+        { params: { action: "checkoutSingle" } }
+      );
+      if (res.data.code === 200) {
+        this.$message.success("单条下单成功");
+        this.loadData();
+      } else {
+        this.$message.error(res.data.msg);
+      }
+    },
+
+    // 以下为原有购物车逻辑
     loadData() {
       const user = JSON.parse(localStorage.getItem("user"));
-      if (!user || !user.id) {
-        alert("请先登录");
-        return;
-      }
+      if (!user || !user.id) { alert("请先登录"); return; }
 
-      // 1️⃣ 先加载水果信息
       fetch("http://localhost:8082/fruit-backend/fruitQueryList")
         .then(res => res.json())
         .then(res => {
           this.fruitList = res.fruits || [];
-          // 2️⃣ 再加载购物车
           this.fetchCart(user.id);
         })
         .catch(err => console.error("水果加载失败", err));
     },
 
-    // 购物车
     fetchCart(userId) {
       fetch(`http://localhost:8082/fruit-backend/cart?userId=${userId}`)
         .then(res => res.json())
         .then(cartData => {
           this.cartItems = cartData.map(item => {
-            // 用 fruitId 找水果信息
             const fruit = this.fruitList.find(f => f.id === item.fruitId);
-
             return {
               id: item.id || item.fruitId,
               fruitId: item.fruitId,
               count: Number(item.quantity) || 1,
-
               name: fruit?.name || "未知水果",
               price: Number(fruit?.price) || 0,
               image: fruit?.picture
@@ -110,18 +141,11 @@ export default {
                 : "http://localhost:8082/fruit-backend/upload/default.jpg"
             };
           });
-        })
-        .catch(err => console.error("购物车加载失败", err));
+        });
     },
 
-    increase(item) {
-      this.updateCount(item, item.count + 1);
-    },
-
-    decrease(item) {
-      if (item.count <= 1) return;
-      this.updateCount(item, item.count - 1);
-    },
+    increase(item) { this.updateCount(item, item.count + 1); },
+    decrease(item) { if (item.count > 1) this.updateCount(item, item.count - 1); },
 
     updateCount(item, count) {
       const formData = new URLSearchParams();
@@ -129,39 +153,20 @@ export default {
       formData.append("id", item.id);
       formData.append("count", count);
 
-      fetch("http://localhost:8082/fruit-backend/cart", {
-        method: "POST",
-        body: formData
-      })
+      fetch("http://localhost:8082/fruit-backend/cart", { method: "POST", body: formData })
         .then(res => res.json())
-        .then(data => {
-          if (data.code === 200) {
-            item.count = count;
-          } else {
-            alert(data.msg);
-          }
-        });
+        .then(data => { if (data.code === 200) item.count = count; else alert(data.msg); });
     },
 
     removeItem(id) {
       if (!confirm("确定删除该商品吗？")) return;
-
       const formData = new URLSearchParams();
       formData.append("action", "delete");
       formData.append("id", id);
 
-      fetch("http://localhost:8082/fruit-backend/cart", {
-        method: "POST",
-        body: formData
-      })
+      fetch("http://localhost:8082/fruit-backend/cart", { method: "POST", body: formData })
         .then(res => res.json())
-        .then(data => {
-          if (data.code === 200) {
-            this.cartItems = this.cartItems.filter(i => i.id !== id);
-          } else {
-            alert(data.msg);
-          }
-        });
+        .then(data => { if (data.code === 200) this.cartItems = this.cartItems.filter(i => i.id !== id); else alert(data.msg); });
     }
   }
 };

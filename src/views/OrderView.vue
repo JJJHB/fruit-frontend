@@ -1,188 +1,308 @@
 <template>
   <div class="order-page">
+
     <h2 class="title">📦 我的订单</h2>
 
-    <div v-if="orders.length === 0" class="empty">
-      暂无订单 🥭
+    <div class="tabs">
+      <span
+        v-for="tab in tabs"
+        :key="tab"
+        :class="{active:currentTab===tab}"
+        @click="currentTab=tab"
+      >
+        {{ tab }}
+      </span>
     </div>
 
-    <div v-else class="order-container">
+    <div v-if="filteredOrders.length===0" class="empty">
+      暂无订单
+    </div>
 
-      <div class="order-card" v-for="order in orders" :key="order.id">
+    <div v-else>
+
+      <div
+        class="order-card"
+        v-for="order in filteredOrders"
+        :key="order.id"
+      >
+
         <div class="order-header">
           <span>订单号：{{ order.id }}</span>
-          <span class="status" :class="order.status">{{ order.status }}</span>
+
+          <span
+            class="status"
+            :class="statusClass(order.status)"
+          >
+            {{ order.status }}
+          </span>
         </div>
 
-        <div class="order-items">
-          <div class="item" v-for="item in order.items" :key="item.id">
-            <img :src="item.image" class="img" />
-            <div class="info">
-              <div class="name">{{ item.name }}</div>
-              <div class="price">￥{{ item.price.toFixed(2) }} × {{ item.count }}</div>
+        <div class="order-body">
+
+          <img
+            :src="order.image"
+            class="img"
+          >
+
+          <div class="info">
+
+            <div class="name">
+              {{ order.name }}
             </div>
+
+            <div>
+              单价：￥{{ Number(order.price).toFixed(2) }}
+            </div>
+
+            <div>
+              数量：{{ order.quantity }}
+            </div>
+
+            <div class="total">
+              ￥{{ Number(order.totalPrice).toFixed(2) }}
+            </div>
+
           </div>
+
+          <div class="action">
+            <button
+              v-if="order.status==='待支付'"
+              class="pay-btn"
+              @click="payOrder(order)"
+            >
+              去支付
+            </button>
+
+            <button
+              v-else-if="order.status==='已发货'"
+              class="finish-btn"
+              @click="finishOrder(order)"
+            >
+              确认收货
+            </button>
+          </div>
+
         </div>
 
-        <div class="order-footer">
-          <div class="total">
-            总价：<span>￥{{ orderTotal(order).toFixed(2) }}</span>
-          </div>
-          <button v-if="order.status === '未支付'" class="action" @click="payOrder(order.id)">去支付</button>
-          <button v-else class="action disabled" disabled>已完成</button>
-        </div>
       </div>
 
     </div>
+
   </div>
 </template>
 
 <script>
+import axios from "axios"
+
 export default {
-  name: "OrderView",
-  data() {
-    return {
-      orders: [
-        {
-          id: '20260608-001',
-          status: '未支付',
-          items: [
-            { id: 1, name: '苹果', price: 5.5, count: 2, image: 'http://localhost:8082/fruit-backend/upload/apple.jpg' },
-            { id: 2, name: '香蕉', price: 3.0, count: 1, image: 'http://localhost:8082/fruit-backend/upload/banana.jpg' }
-          ]
-        },
-        {
-          id: '20260608-002',
-          status: '已支付',
-          items: [
-            { id: 3, name: '橙子', price: 4.0, count: 3, image: 'http://localhost:8082/fruit-backend/upload/orange.jpg' }
-          ]
-        }
-      ]
-    };
+  name:"OrderView",
+
+  data(){
+    return{
+      orders:[],
+      fruits:[],
+      tabs:[
+        "全部",
+        "待支付",
+        "已支付",
+        "待发货",
+        "已发货",
+        "已完成"
+      ],
+      currentTab:"全部"
+    }
   },
-  methods: {
-    orderTotal(order) {
-      return order.items.reduce((sum, item) => sum + item.price * item.count, 0);
+
+  computed:{
+    filteredOrders(){
+      if(this.currentTab==="全部"){
+        return this.orders
+      }
+      return this.orders.filter(o=>o.status===this.currentTab)
+    }
+  },
+
+  mounted(){
+    this.loadData()
+  },
+
+  methods:{
+    async loadData(){
+      const user = JSON.parse(localStorage.getItem("user"))
+      const fruitRes = await axios.get("http://localhost:8082/fruit-backend/fruitQueryList")
+      this.fruits = fruitRes.data.fruits || []
+
+      const orderRes = await axios.get("http://localhost:8082/fruit-backend/orders", {
+        params:{ userId:user.id }
+      })
+
+      this.orders = orderRes.data.map(order=>{
+        const fruit = this.fruits.find(f=>f.id==order.fruitId)
+        return {
+          ...order,
+          name: fruit?.name || "未知商品",
+          image: fruit?.picture ? "http://localhost:8082/fruit-backend/"+fruit.picture : "",
+          quantity: order.quantity,
+          price: order.price,
+          totalPrice: order.totalPrice
+        }
+      })
     },
-    payOrder(orderId) {
-      alert(`订单 ${orderId} 支付功能待实现`);
+
+    statusClass(status){
+      switch(status){
+        case "待支付": return "waitPay"
+        case "已支付": return "paid"
+        case "待发货": return "waitSend"
+        case "已发货": return "sent"
+        case "已完成": return "finish"
+        default: return ""
+      }
+    },
+
+    async payOrder(order){
+      const res = await axios.post("http://localhost:8082/fruit-backend/orders", null, {
+        params:{ action:"pay", id:order.id }
+      })
+
+      if(res.data.success){
+        alert("支付成功")
+        const user = JSON.parse(localStorage.getItem("user"))
+        user.money = Number(user.money) - Number(order.totalPrice)
+        localStorage.setItem("user", JSON.stringify(user))
+        this.loadData()
+      }else{
+        alert(res.data.msg)
+      }
+    },
+
+    async finishOrder(order){
+      const res = await axios.post("http://localhost:8082/fruit-backend/orders", null, {
+        params:{ action:"finish", id:order.id }
+      })
+
+      if(res.data.success){
+        alert("收货成功")
+        this.loadData()
+      }else{
+        alert("操作失败")
+      }
     }
   }
-};
+}
 </script>
 
 <style scoped>
-.order-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
+.order-page{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
 }
 
-.title {
-  font-size: 26px;
-  text-align: center;
-  margin-bottom: 20px;
+.title{
+  text-align:center;
+  margin-bottom:20px;
 }
 
-.empty {
-  text-align: center;
-  font-size: 18px;
-  color: #999;
-  margin-top: 80px;
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
 }
 
-.order-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.tabs span{
+  padding:8px 15px;
+  background:#eee;
+  border-radius:20px;
+  cursor:pointer;
 }
 
-.order-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  padding: 15px;
+.tabs span.active{
+  background:#4caf50;
+  color:white;
 }
 
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-weight: bold;
+.order-card{
+  background:white;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
 
-.status {
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #fff;
+.order-header{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:15px;
 }
 
-.status.未支付 { background-color: #ff9800; }
-.status.已支付 { background-color: #4caf50; }
-.status.已发货 { background-color: #2196f3; }
-
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 15px;
+.order-body{
+  display:flex;
+  align-items:flex-start;
+  gap:15px;
+  flex-wrap:wrap;
 }
 
-.item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.img{
+  width:80px;
+  height:80px;
+  border-radius:10px;
+  flex-shrink:0;
 }
 
-.img {
-  width: 70px;
-  height: 70px;
-  border-radius: 10px;
-  object-fit: cover;
+.info{
+  flex:1 1 200px;
 }
 
-.info .name {
-  font-weight: bold;
-  font-size: 16px;
+.action{
+  margin-left:auto; /* 按钮固定右侧 */
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-.info .price {
-  color: #ff6b6b;
-  margin-top: 4px;
+.pay-btn,
+.finish-btn{
+  width:100px;
+  height:36px;
+  border:none;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
 }
 
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.pay-btn{ background:#ff9800; }
+.finish-btn{ background:#4caf50; }
+
+.status{
+  color:white;
+  padding:3px 10px;
+  border-radius:20px;
 }
 
-.total span {
-  color: #e91e63;
-  font-weight: bold;
-  font-size: 18px;
+.waitPay{ background:#ff9800; }
+.paid{ background:#4caf50; }
+.waitSend{ background:#2196f3; }
+.sent{ background:#673ab7; }
+.finish{ background:#999; }
+
+.empty{
+  text-align:center;
+  margin-top:50px;
+  color:#888;
 }
 
-.action {
-  background: #4caf50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.action:hover {
-  background: #45a049;
-}
-
-.action.disabled {
-  background: #aaa;
-  cursor: not-allowed;
+@media (max-width:500px){
+  .order-body{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .action{
+    margin-left:0;
+    margin-top:10px;
+    width:100%;
+    justify-content:flex-start;
+  }
 }
 </style>
